@@ -6,7 +6,7 @@ import { GameError } from "@/models/GameError";
 import { EffectData, type AsyncEffectFunction, type EffectFunction, type SyncEffectFunction } from "../types/cardTypes";
 import { Player } from "../entities/player";
 import { Card, LootCard, MonsterCard, TreasureCard, ItemCard } from "../cards";
-import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathMonsterData } from "../types/eventTypes";
+import type { OnAttackDeclaredTopDeckData, OnDamageTakenData, OnDeathRewardsData } from "../types/eventTypes";
 import { flushMonsterSlotsEffect, flushShopEffect } from "./activeEffect";
 import { addPassiveEffectToStack } from "./passiveEffect";
 import { visibleItemSelector } from "../targetSelector";
@@ -25,6 +25,7 @@ export function preventGainSoulsEffect(game: Game, issuerType: "all" | "issuer")
             if(issuerType === "issuer" && eventIssuer !== data.issuer) return;
             if (soul) {
                 eventData.soul = null;
+                eventData.prevented = true;
             }
         });
         data.it.cleaners.push(() => {
@@ -265,11 +266,14 @@ export function doubleRewardsEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offDeath: (() => void) | null = null;
         
-        offDeath = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+        // Each time a player gains a monster's rewards (killing it or "gains its rewards"), that player gains them again.
+        offDeath = game.emitter.on("on:death:rewards", (eventData: OnDeathRewardsData) => {
+            if(eventData.reason !== "kill" || !(eventData.entity instanceof Monster)) return;
+            const monster = eventData.entity;
             
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
-                game.entityHandler.entityRewards(eventData.eventIssuer as Monster);
+                game.entityHandler.entityRewards(monster, eventData.eventIssuer, eventData.half, "double");
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Double rewards.`);
@@ -288,18 +292,17 @@ export function activePlayerMustAttackTopDeck(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it, true);
-        let init: Player | null = game.currentPlayer;
+        // Already applied for this turn; every later turn applies it, including an extra turn of the same player.
+        const initTurnId = game.turnHandler.turnId;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
-            if(init === eventData.eventIssuer)
+            if(game.turnHandler.turnId === initTurnId)
                 return;
-            init = null;
             game.entityHandler.playerMustAttack(game.currentPlayer, "topDeck", data.it, true);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            init = null;
             game.currentPlayer.clearAttackRequirementsFromSource(data.it);
             offTurnStart?.();
             offTurnStart = null;
@@ -312,18 +315,17 @@ export function activePlayerMustAttackAdditionalTimeEffect(game: Game): SyncEffe
      return (data: EffectData) => {
         let offTurnStart: (() => void) | null = null;
         game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it, false);
-        let init: Player | null = game.currentPlayer;
+        // Already applied for this turn; every later turn applies it, including an extra turn of the same player.
+        const initTurnId = game.turnHandler.turnId;
 
         offTurnStart = game.emitter.on("on:turn:start", (eventData) => {
-            if(init === eventData.eventIssuer)
+            if(game.turnHandler.turnId === initTurnId)
                 return;
-            init = null;
             game.entityHandler.playerMustAttack(game.currentPlayer, "any", data.it, false);
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            init = null;
             game.currentPlayer.clearAttackRequirementsFromSource(data.it);
             offTurnStart?.();
             offTurnStart = null;

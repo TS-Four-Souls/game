@@ -1,5 +1,5 @@
 import type { LootCard } from "@/models/cards";
-import { MonsterCard } from "@/models/cards";
+import { MonsterCard, MonsterType } from "@/models/cards";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
 import { Game } from "../../models/game";
@@ -640,6 +640,9 @@ describe("Monsters - On death effects", () => {
         expect(card).toBeInstanceOf(MonsterCard);
         game.encounters.forceSetMonsterAtSlot(0, card);
         const monster = game.monsters[0]!;
+        // Peep shuffles the monster deck before its slot is refilled: keep events (TV Static discards the Bloat, TNT Barrel rolls...)
+        // and indomitable monsters out of the deck so the refill can't interfere.
+        while (game.decks.monster.getCard(c => c.encounterType === MonsterType.EVENT || c.indomitable)) ;
         
         game.entityHandler.kill(monster, monster, {card: card, visualEffectBox: undefined});
         await game.actions.resolveStack(); // resolve death

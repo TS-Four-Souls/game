@@ -38,7 +38,8 @@ import type {
     OnAttackDeclaredMonsterData,
     OnSoulGainedOrRemovedData,
     OnDeathRewardsData,
-    OnItemActivatedData
+    OnItemActivatedData,
+    OnCardActivatedData
 } from "../types/eventTypes";
 import * as active from "./activeEffect";
 import * as monster from "./monsterEffects";
@@ -63,9 +64,10 @@ export function addPassiveEffectToStack(
     effectFunction: EffectFunction,
     data: EffectData,
     description: string,
-    visualEffectBox?: VisualEffectBox
+    visualEffectBox?: VisualEffectBox,
+    onCancel?: () => void
 ): number {
-    const effectOnStack = new EffectOnStack(effectFunction, data, description, "passive", data.visualEffectBox);
+    const effectOnStack = new EffectOnStack(effectFunction, data, description, "passive", data.visualEffectBox, onCancel);
     game.addAnimation({
         id: game.nextAnimationId,
         type: "activateInPlay",
@@ -84,8 +86,9 @@ export function preventFirstDamageEachTurnEffect(amount: number, game: Game): Sy
         let target = data.issuer;
         if(data.targets.length == 0)
             target = data.issuer;
-        let remainingDamageToPrevent = amount;
-        if(data.issuer.damageTakenThisTurn.length === 0)
+        // Gained after taking damage this turn: the first damage is already past, nothing to prevent until next turn.
+        let remainingDamageToPrevent = data.issuer.damageTakenThisTurn.length === 0 ? amount : 0;
+        if(remainingDamageToPrevent > 0)
             for(let i = game.stack.size - 1; i >= 0; i--)
                 if(game.stack.elements[i] instanceof DamageOnStack)
                 {
@@ -189,11 +192,11 @@ export function preventNextDamageUpToEffect(amount: number, game: Game, type: "c
             const current = damageArray[0] ?? 0;
             if( current <= 0) return false;
             const effect: EffectFunction = () => {
+                cleanup(); // One-shot: used by this instance even if another effect already prevented it
                 const current = damageArray[0] ?? 0;
                 if( current <= 0) return false;
                 const prevented = Math.min(current, amount);
                 damageArray[0] = current - prevented;
-                cleanup(); // One-shot: remove listeners after first use
                 return true;
             }
             addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
@@ -424,8 +427,9 @@ export function rechargeCharacterOnFirstActivationEachRoundEffect(game: Game): S
     return (data: EffectData) => {
         let lastRoundIdx = -1;
         let offUseChara: (() => void) | null = null;
-        offUseChara = game.emitter.on("on:card:activated", (eventData: OnItemActivatedData) => {
+        offUseChara = game.emitter.on("on:card:activated", (eventData: OnCardActivatedData) => {
             if(eventData.eventIssuer !== data.issuer) return;
+            if(eventData.effectId !== "tap") return;
             if(data.issuer instanceof Player === false) return;
             if(eventData.item !== data.issuer.character) return;
             if(game.turnHandler.round === lastRoundIdx) return;
@@ -465,6 +469,7 @@ export function whileYouControlThisSoulEffect(effectFunctions: EffectFunction[],
         let offGained: (() => void) | null = null;
         offGained = game.emitter.on("on:soul:gained", (eventData: OnSoulGainedOrRemovedData) => {
             if(eventData.soul !== data.it) return;
+            const gainer = eventData.eventIssuer;
             const effect:EffectFunction = async (effectData: EffectData) =>
                 {
                 const currentLast = data.it.cleaners.length;
@@ -478,7 +483,7 @@ export function whileYouControlThisSoulEffect(effectFunctions: EffectFunction[],
                         cleaner();
                 };
                 offRemoved = game.emitter.on("on:soul:removed", (eventData: OnSoulGainedOrRemovedData) => {
-                    if(eventData.eventIssuer !== data.issuer) return;
+                    if(eventData.eventIssuer !== gainer) return;
                     if(eventData.soul !== data.it) return;
                     cleanup();
                     offRemoved?.();
@@ -820,8 +825,8 @@ export function rollAndMayChangeNextRollForThis(game: Game): SyncParsedEffect {
             const savedRoll = game.rollDice(data.issuer, data.it);
             const effect = (effectData: EffectData): boolean => {
                 offRoll = game.emitter.on("on:dice:being-rolled", ({ diceRoll }) => {
-                    if(diceRoll.card === data.it)
-                        return;
+                    if(diceRoll.card === data.it || diceRoll.issuer !== data.issuer)
+                        return; // only your own next roll uses it up
                     const effect:EffectFunction = async (effectData: EffectData): Promise<boolean> => {
                         if(!(data.issuer instanceof Player))
                             throw new GameError("rollAndMayChangeNextRollForThis issuer should be a player.", toSerializedTranslation("error.behaviorError", {error: "rollAndMayChangeNextRollForThis issuer should be a player."}));
@@ -979,7 +984,7 @@ export function rollXChoose1Effect(game: Game, x: number, exactlyOnce: boolean, 
             const effect:EffectFunction = async (effectData: EffectData) => {
                 const values = [diceRoll.value];
                 for(let i = 0; i < x - 1; i++)
-                    values.push(eventIssuer.rollDice(game.random, diceRoll.data).value);
+                    values.push(new DiceRoll(game.random, eventIssuer, diceRoll.data).value); // not an additional roll
                 const chooser = chooserType === "issuer" ? data.issuer : game.turnHandler.getPlayerTo(eventIssuer, "left");
                 if(!(chooser instanceof Player))
                     throw new GameError("rollXChoose1Effect issuer should be a player.", toSerializedTranslation("error.behaviorError", {error: "rollXChoose1Effect issuer should be a player."}));
@@ -1077,7 +1082,7 @@ export function isaacEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         let offAddInPlay: (() => void) | null = null;
         // done is set when the item leaves play (its cleaners ran): nothing is left to restore then.
-        const restores: { item: ItemCard, restore: () => void, done: boolean }[] = []
+        const restores: { item: ItemCard, restore: () => boolean, done: boolean }[] = []
         // make a copy of b2-the_d6 card, even if it is not in the game.
         const d6 = game.decks.eternal._set.cards.find(c => c.slug === "b2-the_d6");
         if( d6 === undefined)
@@ -1090,14 +1095,17 @@ export function isaacEffect(game: Game): SyncEffectFunction {
         // Turns the item into a D6 with only the reroll ability, and makes it eternal.
         // The item's own effects must already be unsubscribed; the caller subscribes the new ones.
         const transform = (item: ItemCard): void => {
+            // Already a D6: it stays one when it changes control.
+            if (restores.some(entry => entry.item === item && !entry.done)) return;
+            const wasEternal = item.eternal;
+            item.setEternal(true);
             const { restore } = item.becomesCopyOf(d6, (card) => {
                 card.effectOutcomes = [rerollOutcome];
                 game.cardHandler.attachEffectsToCard(card, true);
-            });
-            const wasEternal = item.eternal;
-            item.setEternal(true);
+            }, () => game.emit("on:card:copy:changed", { eventIssuer: game.getOwner(item), card: item }, false));
             const entry = { item, restore, done: false };
-            item.cleaners.push(() => {
+            // Part of the copy: kept when the item changes control.
+            item.pushCopyCleaner(() => {
                 item.setEternal(wasEternal);
                 entry.done = true;
             });
@@ -1108,8 +1116,8 @@ export function isaacEffect(game: Game): SyncEffectFunction {
             player.changeName(toSerializedTranslation( "common.content", { content: "Isaac" }), data.it);
             for(const item of player.inPlay)
             {
-                // Unsubscribe the item's own abilities, like loseAllAbilities does.
-                item.cleanup();
+                // Unsubscribe the item's own abilities, like loseAllAbilities does. It may stay a copy (e.g. Modeling Clay) under the D6.
+                item.unsubscribeAbilities();
                 transform(item);
                 item.onAddInPlay(() => player);
             }
@@ -1130,7 +1138,7 @@ export function isaacEffect(game: Game): SyncEffectFunction {
             for(const entry of restores)
             {
                 if (entry.done) continue;
-                entry.restore();
+                if (entry.restore()) continue; // subscribed the item's abilities again itself
                 const owner = game.getOwner(entry.item, "inplay");
                 if (owner !== null)
                     entry.item.onAddInPlay(() => owner);
@@ -1191,7 +1199,7 @@ export function setNextDamageToXEffect(setTo: number, game: Game): SyncEffectFun
             if (target !== eventIssuer) return;
             const effect:EffectFunction = () => 
                 {
-                    damageArray[0] = setTo;
+                    damageArray[0] = Math.min(damageArray[0] ?? 0, setTo); // reduced to, never raised to
                     return true;
                 }
             addPassiveEffectToStack(game, effect, data, "", data.visualEffectBox);
@@ -1221,7 +1229,8 @@ export function onYourTurnModifier(
 
         let offTurn = game.emitter.on("on:turn:start", (eventData: OnTurnStartData) => {
             const { eventIssuer } = eventData;
-            if (eventIssuer !== data.issuer) return;
+            // Already applied if this entered play on its owner's turn before on:turn:start (e.g. starting treasure).
+            if (eventIssuer !== data.issuer || active) return;
             const target = data.targets.length > 0 ? data.peek() : data.issuer;
             active = true;
             for (const adder of adders)
@@ -1334,6 +1343,12 @@ export function firstAttackRollsModifierEffect(game: Game, modifier: number, rol
             activate();
             if(rollNumbers.includes(eventIssuer.attackRollThisTurn + 1) === false) deactivate();
         });
+        // A roll removed before resolving (cancelled, fizzled) still counts: set the modifier for the roll being made.
+        const offBeingRolled = game.emitter.on("on:dice:being-rolled", ({ eventIssuer, diceRoll }) => {
+            if (eventIssuer !== data.issuer || !diceRoll.attackRoll) return;
+            if(rollNumbers.includes(issuer.attackRollThisTurn)) activate();
+            else deactivate();
+        });
 
         data.it.cleaners.push(() => {
             deactivate();
@@ -1341,6 +1356,7 @@ export function firstAttackRollsModifierEffect(game: Game, modifier: number, rol
             offAttackRoll = null;
             offTurnStart?.();
             offTurnStart = null;
+            offBeingRolled();
         });
         return true;
     };
@@ -2460,7 +2476,8 @@ export function redirectSoulGainEffect(game: Game): SyncEffectFunction {
                 game.cardHandler.addSoul(target, soul);
                 return true;
             };
-            addPassiveEffectToStack(game, effect, data, `Redirect soul gain to this card.`);
+            // Cancelled: nothing replaces the gain, so the active player gains the soul.
+            addPassiveEffectToStack(game, effect, data, `Redirect soul gain to this card.`, undefined, () => game.cardHandler.addSoul(eventIssuer, soul));
             offSoulGain?.();
             offSoulGain = null;
         });
@@ -2545,6 +2562,8 @@ export function soulDiffDCModifierOnYourTurnEffect(game: Game): SyncEffectFuncti
             const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return;
             if(!(data.issuer instanceof Player)) return;
+            // Revert what was applied if this entered play on its owner's turn before on:turn:start.
+            if(diff !== 0) game.entityHandler.addDCToEachMonster(data.issuer, diff, data.it);
 
             // Calculate the difference in souls
             diff = Math.max(...game.players.map((p) => p.totalSouls)) - data.issuer.totalSouls;
@@ -2678,23 +2697,28 @@ export function replaceDeathPenaltyEffect(game: Game): SyncEffectFunction {
         // Listen for the next death penalty event on this player
         const issuer = data.issuer;
         if (!(issuer instanceof Player)) return false;
-        const OriginalDeathPenaltyItems = game.deathPenaltyItems.bind(game);
-        game.deathPenaltyItems = async (player: Player): Promise<ItemCard[]> => {
+        // Overrides chain (e.g. Shadow and a copy of it): an inactive override falls through to the previous one.
+        const previousDeathPenaltyItems = game.deathPenaltyItems.bind(game);
+        let active = true;
+        const deathPenaltyItems = async (player: Player, nbItemsToLose: number): Promise<ItemCard[]> => {
+            if (!active || player === issuer)
+                return previousDeathPenaltyItems(player, nbItemsToLose);
             const setOfLosableItems = player.inPlay.filter(
               (c) =>
                 (c instanceof TreasureCard || (c instanceof LootCard && c.trinket)) &&
               c.eternal === false
             );
-            if (game.gameParameters.deathPenaltyItem.value > 0 && setOfLosableItems.length > 0) {
-              const numberOfItemsToLose = Math.min(game.gameParameters.deathPenaltyItem.value, setOfLosableItems.length);
+            if (nbItemsToLose > 0 && setOfLosableItems.length > 0) {
+              const numberOfItemsToLose = Math.min(nbItemsToLose, setOfLosableItems.length);
               return (
-                await game.select(issuer, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, game.gameParameters.deathPenaltyItem.value > 1
+                await game.select(issuer, numberOfItemsToLose, numberOfItemsToLose, setOfLosableItems, nbItemsToLose > 1
                     ? toSerializedTranslation("pending.destroyItems")
                     : toSerializedTranslation("pending.destroyItem"), data.serializedCardAndBox, true)
               ).selected;
             }
             return [];
           }
+        game.deathPenaltyItems = deathPenaltyItems;
 
         offPenalty = game.emitter.on("on:death:penalty", (eventData: OnDeathPenaltyData) => {
             const { eventIssuer, coinsLost, itemsLost, lootCardsLost } = eventData;
@@ -2702,6 +2726,7 @@ export function replaceDeathPenaltyEffect(game: Game): SyncEffectFunction {
             if(!(eventIssuer instanceof Player))
                 return;
             game.gainCoins(issuer, coinsLost, data.it);
+            eventData.coinsLost = 0; // already redirected: another copy of this must not gain them again
             if(lootCardsLost === undefined)
                 console.warn("replaceDeathPenaltyEffect: lootCardsLost is undefined. This should not happen.");
             for (const loot of lootCardsLost)
@@ -2714,7 +2739,9 @@ export function replaceDeathPenaltyEffect(game: Game): SyncEffectFunction {
 
         // Store cleanup function on the card for when it's removed/destroyed
         data.it.cleaners.push(() => {
-            game.deathPenaltyItems = OriginalDeathPenaltyItems;
+            active = false;
+            if (game.deathPenaltyItems === deathPenaltyItems)
+                game.deathPenaltyItems = previousDeathPenaltyItems;
             offPenalty?.();
             offPenalty = null;
         });
@@ -3403,7 +3430,7 @@ export function levelDownInsteadOfDeathPenaltyEffect(
             if(!(data.issuer instanceof Player)) return false;
             const { eventIssuer } = eventData;
             if (data.issuer !== eventIssuer) return false;
-            if(data.it.counters.getCounter("normal").value <= minLvl) return false;
+            if(data.it.counters.value("normal") <= minLvl) return false;
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", -1);
             eventData.values.paysPenalty = false;
             return true;
@@ -3468,6 +3495,7 @@ export function gainPlusCoinsEffect(
             const { eventIssuer, coinGained } = eventData;
             if (data.issuer !== eventIssuer) return;
             const current = coinGained[0] ?? 0;
+            if (current <= 0) return; // a gain replaced by nothing (e.g. Bum-bo) stays replaced
             coinGained[0] = current + amount;
         });
 
@@ -3747,10 +3775,9 @@ export function preventDamageByRemovingCountersEffect(
                 throw new GameError("preventDamageByRemovingCountersEffect: counters cannot be negative.", toSerializedTranslation("error.behaviorError", {error: "preventDamageByRemovingCountersEffect: counters cannot be negative."}));
             const current = damageArray[0] ?? 0;
             const prevented = Math.min(current, counters);
+            if(prevented <= 0) return; // no counters left: it keeps working if it gets new ones
             damageArray[0] = current - prevented;
             game.cardHandler.addToCounter(data.issuer, data.it, "normal", -prevented);
-            if(counters <= 0) 
-                data.it.cleanup();
         });
 
         // Store cleanup function on the card for when it's removed/destroyed
@@ -3841,7 +3868,8 @@ export function nextRollModifier(game: Game, type: "any" | "attack", amount: num
         if(issuerType === "issuer" && data.issuer instanceof Player === false)
             return false;
         const tempEffect = getTemporaryEffect(data);
-        game.currentPlayer.addTemporaryEffect(tempEffect);
+        const holder = issuerType === "issuer" ? data.issuer : game.currentPlayer;
+        holder.addTemporaryEffect(tempEffect);
 
         let players = issuerType === "active" ? [game.currentPlayer] 
                 : issuerType === "issuer" ? [data.issuer] 
@@ -3855,19 +3883,22 @@ export function nextRollModifier(game: Game, type: "any" | "attack", amount: num
         }
         
 
-        offTurn = game.emitter.on("on:turn:end", (eventData: OnTurnStartData) => {
-            clean();
-        });
+        // "Your next roll" lasts until you roll; the others only last this turn.
+        if(issuerType !== "issuer")
+            offTurn = game.emitter.on("on:turn:end", (eventData: OnTurnStartData) => {
+                clean();
+            });
         
         offRoll = game.emitter.on(event, (eventData: OnRollData) => {
             if(type === "attack" && !eventData.dice.attackRoll) return;
             if(issuerType === "active" && eventData.eventIssuer !== game.currentPlayer) return;
+            if(issuerType === "issuer" && eventData.eventIssuer !== data.issuer) return;
             clean();
         });
 
         // Store cleanup function
         const clean = () => {
-            game.currentPlayer.removeTemporaryEffect(tempEffect);
+            holder.removeTemporaryEffect(tempEffect);
             for(const player of players)
             {
                 if(type === "attack")
@@ -3875,7 +3906,7 @@ export function nextRollModifier(game: Game, type: "any" | "attack", amount: num
                 else
                     game.entityHandler.addDiceModifier(player, -amount, data.it);
             }
-            offTurn();
+            offTurn?.();
             offRoll();
         }
         
@@ -3904,6 +3935,7 @@ export function takeDamagePlusEffect(
             const effect:EffectFunction = () => 
                 {
                     const current = damageArray[0] ?? 0;
+                    if (current <= 0) return true; // fully prevented damage stays prevented
                     damageArray[0] = current + amount;
                     return true;
                 }
@@ -4041,9 +4073,12 @@ export function doubleRewardsTillEndOfTurnEffect(game: Game): SyncEffectFunction
         let offEffect: (() => void) | null = null;
         let offEndTurn: (() => void) | null = null;
 
-        offEffect = game.emitter.on("on:death:monster", (eventData: OnDeathMonsterData) => {
+        // Each time a player gains a monster's rewards (killing it or "gains its rewards"), that player gains them again.
+        offEffect = game.emitter.on("on:death:rewards", (eventData: OnDeathRewardsData) => {
+            if(eventData.reason !== "kill" || !(eventData.entity instanceof Monster)) return;
+            const monster = eventData.entity;
             const effect = (effectData: EffectData): boolean => {
-                game.entityHandler.entityRewards(eventData.eventIssuer as Monster);
+                game.entityHandler.entityRewards(monster, eventData.eventIssuer, eventData.half, "double");
                 return true;
             };
             addPassiveEffectToStack(game, effect, data, `Double rewards.`);

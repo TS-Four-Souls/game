@@ -653,6 +653,17 @@ describe("Four Souls+2 Treasures", () => {
         expect(game.entityHandler.getDC(game.encounters.monsterIn(1)!)).toBe(evastion[1]!+1);
     });
 
+    it("fsp2-polyphemus - gained on your turn before on:turn:start, [DC] is not applied twice", async () => {
+        const card1 = game.obtainCard("fsp2-polyphemus") as TreasureCard;
+        const owner = game.currentPlayer;
+        const dc = game.entityHandler.getDC(game.encounters.monsterIn(0)!);
+        game.cardHandler.addInPlay(owner, card1);
+        game.emit("on:turn:start", { eventIssuer: owner });
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(dc+1);
+        game.emit("till:turn:end", { eventIssuer: owner });
+        expect(game.entityHandler.getDC(game.encounters.monsterIn(0)!)).toBe(dc);
+    });
+
     it("fsp2-rainbow_baby - [Tap Effect] Choose one- Each player takes 1 damage.", async () => {
         const card1 = game.obtainCard("fsp2-rainbow_baby") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);

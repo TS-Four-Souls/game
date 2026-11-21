@@ -41,6 +41,12 @@ class Card {
     protected _canBeDiscarded: boolean = true;
     protected _canBeActivated: boolean = true;
     protected _cleanup: (() => void)[] = [];
+    /** Cleaners keeping the copy state of becomesCopyOf (restore points, copy durations): unsubscribeAbilities keeps them. */
+    protected _copyCleaners = new Set<() => void>();
+    /** Incremented by unsubscribeAbilities: tells a copy's restore() that the abilities it restores were unsubscribed. */
+    protected _unsubscribeCount = 0;
+    /** Set while the card has lost all its abilities (loseAllAbilities): the abilities it regains. */
+    protected _lostAbilities: { effectInterface: EffectInterface } | null = null;
     protected _onFlip: (() => void)[] = [];
     protected _otherSideCard: Card | null = null;
     protected _entity: Entity | undefined = undefined;
@@ -98,11 +104,15 @@ class Card {
     }
 
     visualEffectBoxFromDescription(description: string): VisualEffectBox {
-        const processedDescription = description.toLowerCase().replaceAll("!", "").replaceAll("-", "");
-        for(const effectRange of this._separatorIds) {
-            for(const effect of effectRange) {
-                if(effect.description.toLowerCase().replaceAll("!", "").replaceAll("-", "").includes(processedDescription)) {
-                    return { startIndex: effect.startIndex, endIndex: effect.endIndex };
+        const normalize = (s: string): string => s.toLowerCase().replaceAll("!", "").replaceAll("-", "");
+        // We check both that things like "pay 1 HP: loot 1" and "pay 2 HP: loot 2" match correctly.
+        for(const process of [normalize, (s: string): string => normalize(s).replace(/\d+/g, "#")]) {
+            const processedDescription = process(description);
+            for(const effectRange of this._separatorIds) {
+                for(const effect of effectRange) {
+                    if(process(effect.description).includes(processedDescription)) {
+                        return { startIndex: effect.startIndex, endIndex: effect.endIndex };
+                    }
                 }
             }
         }
@@ -255,6 +265,11 @@ class Card {
         this._cleanup[idx] = () => {};
         return true;
     }
+    /** Adds a cleaner that is part of the copy state (e.g. the end of a copy's duration): kept by unsubscribeAbilities. */
+    pushCopyCleaner(cleaner: () => void): void {
+        this._copyCleaners.add(cleaner);
+        this._cleanup.push(cleaner);
+    }
     get owner(): Entity {
         if(!this._owner)
             throw new GameError(`Card ${this.name} does not have an owner.`, toSerializedTranslation("error.noOwnerForCard", {card: this.name}));
@@ -293,7 +308,8 @@ class Card {
                 else if(effect.toLowerCase().includes("choose one-"))
                 {
                     const arr: EffectRange = []
-                    for(let i = 1 + (effect.toLowerCase().includes("[paid effect]") ? 1 : 0); i < lines.length; i++)
+                    // The options follow the "choose one-" line (the cost may be on its own line before it).
+                    for(let i = lines.findIndex(l => l.toLowerCase().includes("choose one-")) + 1; i < lines.length; i++)
                     {
                         arr.push({startIndex: id, endIndex: id, description: lines[i]!});
                         id++;
@@ -357,9 +373,42 @@ class Card {
         // Swap the list out first so a cleaner re-entering cleanup() doesn't run the same cleaners twice.
         const list = this._cleanup;
         this._cleanup = [];
+        this._copyCleaners.clear();
         for (const cleaner of list.toReversed()) {
             cleaner();
         }
+        this.regainAbilities();
+    }
+
+    /**
+     * Unsubscribes the card's abilities while it stays in play (e.g. a change of control), like cleanup(),
+     * but keeps its copy state (becomesCopyOf) and the copy durations. The caller subscribes them again with onAddInPlay.
+     * Lost abilities (loseAllAbilities) are regained, as when the card leaves play.
+     */
+    unsubscribeAbilities(): void {
+        this._unsubscribeCount++;
+        const list = [...this._cleanup];
+        let lastKept = -1;
+        for (let i = list.length - 1; i >= 0; i--) {
+            const cleaner = list[i]!;
+            if (this._copyCleaners.has(cleaner)) {
+                lastKept = Math.max(lastKept, i);
+                continue;
+            }
+            if (this._cleanup[i] !== cleaner) continue; // removed by another cleaner (removeCleaner), which ran it
+            // Positions are kept: copy restore points are addressed by index.
+            this._cleanup[i] = () => {};
+            cleaner();
+        }
+        if (this._cleanup.length === list.length)
+            this._cleanup.length = lastKept + 1;
+        this.regainAbilities();
+    }
+
+    private regainAbilities(): void {
+        if (this._lostAbilities === null) return;
+        this._effectInterface = this._lostAbilities.effectInterface;
+        this._lostAbilities = null;
     }
 
     recharge(): boolean {
@@ -382,24 +431,21 @@ class Card {
     }
     /**
      * Makes this in-play card lose all its abilities, until the returned function is called
-     * or the card leaves play (whichever comes first).
-     * Non-ability state set by onAddInPlay (e.g. character stats) is kept.
+     * or the card leaves play or changes control (whichever comes first).
+     * Non-ability state set by onAddInPlay (e.g. character stats) is kept, and so is its copy state (becomesCopyOf):
+     * a copy ending meanwhile changes the abilities it regains.
      */
     loseAllAbilities(): () => void {
         const owner = this.owner;
-        const effectInterface = this._effectInterface;
-        let lost = true;
-        this.cleanup();
+        this.unsubscribeAbilities();
+        const lost = { effectInterface: this._effectInterface };
+        this._lostAbilities = lost;
         this._effectInterface = new EffectInterface(this);
         this.onAddInPlay(() => owner);
-        // Leaving play runs the cleaners: the card gets its abilities back for its next controller.
-        this._cleanup.push(() => {
-            lost = false;
-            this._effectInterface = effectInterface;
-        });
         return () => {
-            if (!lost) return;
-            this.cleanup();
+            // Already regained when the card left play or changed control.
+            if (this._lostAbilities !== lost) return;
+            this.unsubscribeAbilities();
             this.onAddInPlay(() => owner);
         };
     }
@@ -425,8 +471,11 @@ class Card {
      * Returns the original state so it can be restored later.
      * @param otherCard - The card to copy
      * @param attachEffects - Optional callback to attach effects to this card
+     * @param onCopyChange - Optional callback, called once the card became the copy and once restore() restored it
+     * @returns restore() undoes the copy (no-op once undone) and returns true when it subscribed the restored abilities
+     * itself, because they were unsubscribed meanwhile (unsubscribeAbilities).
      */
-    becomesCopyOf(otherCard: Card, attachEffects?: (card: Card) => void): { originalState: any, restore: () => void } {
+    becomesCopyOf(otherCard: Card, attachEffects?: (card: Card) => void, onCopyChange?: () => void): { originalState: any, restore: () => boolean } {
         // verify that the card is still in play.
         // Store original state including cleanup array
         // console.log(`becomesCopyOf called on ${this.name} to copy ${otherCard.name}. Current tags: ${JSON.stringify(this.effectOutcomes)}. Current cleanup length: ${this._cleanup.length}.`);
@@ -440,7 +489,7 @@ class Card {
             type: this._type,
             subtype: this._subtype,
             effectOutcomes: this._effectOutcomes,
-            effectInterface: this._effectInterface,
+            effectInterface: this._lostAbilities?.effectInterface ?? this._effectInterface,
             cleanup: [...this._cleanup], // Store a COPY of the cleanup array
             owner: this._owner,
             flipData: this._flipData,
@@ -466,12 +515,20 @@ class Card {
         if(this instanceof ItemCard)
             this.parentCard = originalState.slug;
         // Create a new effect interface
+        const currentEffectInterface = this._effectInterface;
         this._effectInterface = new EffectInterface(this);
         
         // Attach effects if callback provided
         if (attachEffects) {
             attachEffects(this);
         }
+        // The card has lost all its abilities: it gets the copied ones when it regains them.
+        if (this._lostAbilities !== null) {
+            this._lostAbilities.effectInterface = this._effectInterface;
+            this._effectInterface = currentEffectInterface;
+        }
+        let copied = true;
+        const unsubscribeCount = this._unsubscribeCount;
         const prevIdx = this._tags.lastCopiedRestoreOriginalStateIndex;
         // Restore function
         const restoreOriginalState = (): void => {
@@ -485,26 +542,43 @@ class Card {
             this._canBeActivated = originalState.canBeActivated;
             this._subtype = originalState.subtype;
             this._effectOutcomes = originalState.effectOutcomes;
-            this._effectInterface = originalState.effectInterface;
+            if (this._lostAbilities !== null)
+                this._lostAbilities.effectInterface = originalState.effectInterface;
+            else
+                this._effectInterface = originalState.effectInterface;
             this._flipData = originalState.flipData;
             restoreSubclassState();
             this._tags.lastCopiedRestoreOriginalStateIndex = prevIdx; // Restore the previous index for potential nested copies
             this._tags.restore = undefined;
+            if (this._tags.restoreIndefinite === restore)
+                this._tags.restoreIndefinite = undefined;
+            copied = false;
             if(this instanceof ItemCard)
                 this.parentCard = null;
         };
-         this._cleanup.push(restoreOriginalState);
+        this.pushCopyCleaner(restoreOriginalState);
         this._tags.lastCopiedRestoreOriginalStateIndex = this._cleanup.length - 1; // Store the index of the restore function in tags for potential external access
         // Cleanup anything that happened after the copy.
-        const restore = (): void => {
+        const restore = (): boolean => {
+            if (!copied) return false; // Already restored, or the card left play.
             // Call all cleanup functions to restore original state
             for (let i = this._cleanup.length - 1; i >= originalState.cleanup.length; i--) {
                 this._cleanup[i]!();
             }
+            for (const cleaner of this._cleanup.slice(originalState.cleanup.length))
+                this._copyCleaners.delete(cleaner);
             this._cleanup = this._cleanup.slice(0, originalState.cleanup.length); // Restore original cleanup array
+            // The restored abilities were unsubscribed meanwhile (e.g. change of control): subscribe them for the current controller.
+            const owner = this._owner;
+            const resubscribe = this._unsubscribeCount !== unsubscribeCount && owner !== undefined;
+            if (resubscribe)
+                this.onAddInPlay(() => owner);
+            onCopyChange?.();
+            return resubscribe;
         };
 
         this._tags.restore = restore;
+        onCopyChange?.();
         
         return { originalState, restore };
     }
@@ -1551,7 +1625,7 @@ export class CounterHandler{
         return this.counters.get(type)!;
     }
     value(type: CounterType): number{
-        return this.getCounter(type).value;
+        return this.counters.get(type)?.value ?? 0;
     }
     isDefined(type: CounterType): boolean{
         return this.counters.get(type) !== undefined;
@@ -1568,7 +1642,7 @@ export class CounterHandler{
         this.getCounter(type).resetValue();
     }
     hasCounter(type: CounterType): boolean{
-        return this.getCounter(type).hasCounter;
+        return this.counters.get(type)?.hasCounter ?? false;
     }
 
     get json(): SerializedCounter[] | undefined{

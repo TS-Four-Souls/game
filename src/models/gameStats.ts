@@ -125,8 +125,8 @@ export function getTitles(players: Player[]): Record<string, Title[]> {
         }
     }
     if(minExpectation !== null && secondMinExpectation !== null && maxExpectation !== null && secondMaxExpectation !== null) {
-        titles[players[minExpectation]!.id]!.push(new Title(Titles["diceRolled"][0]!, Math.abs(minExpectation! - secondMinExpectation!) / Math.max(1, total)));
-        titles[players[maxExpectation]!.id]!.push(new Title(Titles["diceRolled"][1]!, Math.abs(maxExpectation! - secondMaxExpectation!) / Math.max(1, total)));
+        titles[players[minExpectation]!.id]!.push(new Title(Titles["diceRolled"][0]!, Math.abs(expecations[minExpectation]! - expecations[secondMinExpectation]!) / Math.max(1, total)));
+        titles[players[maxExpectation]!.id]!.push(new Title(Titles["diceRolled"][1]!, Math.abs(expecations[maxExpectation]! - expecations[secondMaxExpectation]!) / Math.max(1, total)));
     }
     
         // if(minExpectation === player)

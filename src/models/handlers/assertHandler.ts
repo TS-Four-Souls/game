@@ -44,7 +44,6 @@ export class AssertHandler {
   }
 
   currentPlayerIsNotEngagedInCombat(shouldThrow: boolean = true): Capability {
-    this.game.entityHandler.endCombatIfInvalid(this.game.currentPlayer);
     if (this.game.currentPlayer!.isEngagedInCombat) {
       if (shouldThrow) {
         throw new GameError("You are currently engaged in combat", toSerializedTranslation("error.alreadyEngagedInCombat"));

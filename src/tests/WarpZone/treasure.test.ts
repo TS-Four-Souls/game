@@ -398,6 +398,8 @@ describe("Warp Zone Treasures", () => {
     it("rwz-aubrey", async () => {
         const card1 = game.obtainCard("rwz-aubrey") as TreasureCard;
         game.cardHandler.addInPlay(player1, card1);
+        // A plain shop item: a random one may change coins or hand size when gained (e.g. Trick Penny).
+        game.shop._slots[0] = [game.obtainCard("b2-brimstone") as TreasureCard];
         game.gainCoins(player1, 11, card1);
         game.actions.declarePurchase(player1);
         game.actions.purchase(player1, 0);

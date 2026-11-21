@@ -486,7 +486,7 @@ function parseTriggeredEffect(s: string, game: Game, nr: NumberRobustString, sel
         return logic.noTargetSyncEffect(passive.ConditionalEffect([restOfEffect.effectFunction], 
             (player: Player, card: Card) => {
                 return [...player.inPlay, ...player.souls].some(other => other !== card && (other.name === "Cube Of Meat" || other.name === "Ultra Flesh Kid!"))
-            }, ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:soul:gained", "on:soul:removed"], game, false));
+            }, ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:soul:gained", "on:soul:removed", "on:card:copy:changed"], game, false));
     }    
     if (s.startsWith("when this dies, ") && !s.includes("killed")) // effects that include "killed" refers to the killer and need to be handled differently.
         return logic.parseWhenThisDiesEffect(s, game);
@@ -1415,7 +1415,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                     [game.entityHandler.addAttack.bind(game.entityHandler)],
                     nr.nextNumber(),
                     (entity: Entity, card: Card) => entity instanceof Player && entity.inPlay.filter((item) => !item.isEternal() && item !== card).length === 0,
-                    ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after"],
+                    ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:card:copy:changed"],
                     game,
                     false
                 ));
@@ -1427,7 +1427,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
                         [game.entityHandler.addDCToEachMonster.bind(game.entityHandler)],
                         dcMod,
                         (entity: Entity, card: Card) => entity instanceof Player && entity === game.currentPlayer && entity.inPlay.filter((item) => !item.isEternal() && item !== card).length >= minItems,
-                        ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:turn:start", "till:turn:end"],
+                        ["on:enter:play:after", "on:item:destroyed", "on:item:removed:after", "on:card:copy:changed", "on:turn:start", "till:turn:end"],
                         game,
                         false,
                         false // re-evaluate on other players' turns too, so the modifier is removed when it's not your turn.
@@ -1942,7 +1942,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "if you would gain any amount of ¢, this levels up by that much instead":
             return logic.noTargetSyncEffect(passive.gainCoinsLevelUpEffect(game));
         case "each time a player dies, this levels up":
-            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData): boolean => { game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true; }], game, nr.masked));
+            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:death:before-penalty", [(data:EffectData): boolean => { game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true; }], game, nr.masked, (_, eventData) => eventData.eventIssuer instanceof Player));
         case "this levels up":
             return logic.noTargetSyncEffect(active.putCountersOnItemEffect(1, "normal", game));
         case "rewards are doubled till end of turn":
@@ -2239,7 +2239,7 @@ function parseStandardSyncEffect(s: string, game: Game, nr: NumberRobustString, 
         case "each time a player declares an attack, the active player rolls-\nx-x: this deals x damage to that player":
             return logic.noTargetSyncEffect(monster.dealDamageOnAttackDeclarationEffect(game, nr.nextNumber(),nr.nextNumber(), nr.nextNumber()));
         case "each time a player dies, put a counter on this":
-            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:death:penalty", [(data:EffectData): boolean => { game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true; }], game, s));
+            return logic.noTargetSyncEffect(passive.onAnyEventEffect("on:death:before-penalty", [(data:EffectData): boolean => { game.cardHandler.addToCounter(data.issuer, data.it, "normal", 1); return true; }], game, s, (_, eventData) => eventData.eventIssuer instanceof Player));
         case "each time a player dies, each other player gains x¢":
             return logic.noTargetSyncEffect(room.gainCoinsOnPlayerDeathEffect(game, nr.nextNumber()));
         case "each time a player dies, each other player loots x":

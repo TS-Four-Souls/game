@@ -640,6 +640,11 @@ export function copyTapAbilityEffect(game: Game): AsyncEffectFunction {
     };
 }
 
+/** Returns a callback emitting "on:card:copy:changed" for a card that became a copy or got its original state back. */
+function emitCopyChanged(game: Game, card: Card): () => void {
+    return () => game.emit("on:card:copy:changed", { eventIssuer: game.getOwner(card), card }, false);
+}
+
 export function becomesCopyOfItemIndefinitelyEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
         const itemToCopy = data.next as ItemCard;
@@ -659,7 +664,7 @@ export function becomesCopyOfItemIndefinitelyEffect(game: Game): SyncEffectFunct
         // Transform this card to become the copy, with effect attachment
         thisItem.becomesCopyOf(itemToCopy, (card) => {
             game.cardHandler.attachEffectsToCard(card, true);
-        });
+        }, emitCopyChanged(game, thisItem));
         data.it.tags.restoreIndefinite = data.it.tags.restore;
         data.it.tags.restore = undefined;
         // Re-subscribe the new effects with the current owner
@@ -684,7 +689,7 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): SyncEffectFun
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
             game.cardHandler.attachEffectsToCard(card, true);
-        });
+        }, emitCopyChanged(game, thisItem));
         let restored = false;
         let unsubscribe = (): void => {};
         const restoreOnce = (): void => {
@@ -700,7 +705,8 @@ export function becomesCopyOfItemUntilEndOfTurnEffect(game: Game): SyncEffectFun
         unsubscribe = game.emitter.on("till:turn:end", (eventData: OnTurnEndData) => {
                 restoreOnce();
         });
-         data.it.cleaners.push(() => {
+        // Part of the copy: kept when the item changes control.
+        data.it.pushCopyCleaner(() => {
             unsubscribe();
         });
         return true;
@@ -726,7 +732,7 @@ export function becomesCopyOfItemUntilStartOfYourNextTurnAndRechargeEffect(game:
         // Transform this card to become the copy and get the restore function
         const { restore } = thisItem.becomesCopyOf(itemToCopy, (card) => {
             game.cardHandler.attachEffectsToCard(card, true);
-        });
+        }, emitCopyChanged(game, thisItem));
         let restored = false;
         let unsubscribe = (): void => {};
         const restoreOnce = (): void => {
@@ -743,7 +749,8 @@ export function becomesCopyOfItemUntilStartOfYourNextTurnAndRechargeEffect(game:
                 restoreOnce();
             }
         });
-        data.it.cleaners.push(() => {
+        // Part of the copy: kept when the item changes control.
+        data.it.pushCopyCleaner(() => {
             unsubscribe();
         });
         return true;
@@ -1719,7 +1726,7 @@ export function rerollDiceRollXEffect(game: Game, numberOfDice: number): AsyncEf
             throw new GameError("Expected a DiceRoll instance.", toSerializedTranslation("error.expectedDiceRollInstance"));
         const values = [];
                 for(let i = 0; i < numberOfDice; i++)
-                    values.push(diceRoll.issuer.rollDice(game.random, diceRoll.data).value);
+                    values.push(new DiceRoll(game.random, diceRoll.issuer, diceRoll.data).value); // not an additional roll
         const chooser = (await data.selectAndRecord(game, diceRoll.issuer as Player, 1, 1, game.players.filter((p) => p !== diceRoll.issuer), qq("pending.choosePlayerForDiceRoll", { value: values[0], value2: values[1] }), data.serializedCardAndBox, true, true)).selected[0] as Player;
         if(!chooser)
             throw new GameError("No player selected.", toSerializedTranslation("error.noPlayerSelected"));
@@ -1805,7 +1812,7 @@ export function discardLootOrTakeDamageEffect(game: Game, damage: number): Async
         if(!(card instanceof LootCard))
             return false;
         const idx = player.hand.cards.indexOf(card);
-        game.cardHandler.discardFromHandAtIndex(player, idx);
+        game.cardHandler.discardFromHandAtIndex(player, idx, "effect");
         return true;
     };
 }
@@ -2193,7 +2200,7 @@ export function changeNumberInEffectTextEffect(game: Game, val: number, min: num
             cleanTarget = (): void => {
                 originalState.effectOutcomes = oldOutcomes;
                 targetCard.removeEffectTextNumber(newEffectNumber);
-                restore();
+                if(restore()) return; // subscribed the restored abilities itself
                 const owner = game.getOwner(targetCard);
                 if(owner !== null)
                     targetCard.onAddInPlay(() => owner);
@@ -2465,12 +2472,20 @@ export function endTurnAndResetStackEffect(game: Game, onlyIfYourTurn: boolean =
         if(game.isEndPhase) return false;
         game.resetStack();
         game.resetCallbacks();
+        const endsTurn = !onlyIfYourTurn || game.currentPlayer === data.issuer;
+        if(endsTurn) game.skipTurnStructure();
         await game.resolveCallbacks(); // finish what already resolved (e.g. a dead monster leaving play) before the turn ends.
-        if(onlyIfYourTurn && game.currentPlayer !== data.issuer) return true;
-        game.currentPlayer.clearAttackRequirement();
-        game.actions.cancelPurchase(game.currentPlayer, true);
-        game.entityHandler.endCombat();
-        await game.endTurn();
+        if(!endsTurn) return true;
+        // Finishing what resolved can add to the stack (e.g. the refilled slot reveals an event): end the turn after it.
+        const turnId = game.turnHandler.turnId;
+        await game.executeWhenStackSubset([], async () => {
+            if(game.turnHandler.turnId !== turnId || game.isEndPhase) return; // already ended
+            // Cleared here: what resolved in between can add a requirement (e.g. Lust For Blood!), the turn still ends.
+            game.currentPlayer.clearAttackRequirement();
+            game.actions.cancelPurchase(game.currentPlayer, true);
+            game.entityHandler.endCombat();
+            await game.endTurn();
+        }, false);
         return true;
     };
 }
@@ -2484,16 +2499,22 @@ export function chooseAndCopyEternalItemAbilitiesEffect(game: Game): AsyncEffect
         const selection = await data.selectAndRecord(game, issuer, 1, 1, eternals, qq("selector.eternalItemAnotherPlayerControls"), data.serializedCardAndBox, true, true);
         const target = selection.selected[0] as ItemCard;
         if(!target) return false;
+        // Only one copy at a time.
+        if(data.it.tags.restore !== undefined)
+            data.it.tags.restore();
         const reverse = data.it.becomesCopyOf(target, (card) => {
             game.cardHandler.attachEffectsToCard(card, true);
-        });
+        }, emitCopyChanged(game, data.it));
+        // Subscribe the copied abilities with the current owner.
+        data.it.onAddInPlay(() => issuer);
         let offNextTurnStart : null | (() => void) = null;
         offNextTurnStart = game.emitter.on("as:turn:start", (eventData: OnTurnStartData) => {
-            if(eventData.eventIssuer === issuer) {
-                reverse.restore();
-                if(offNextTurnStart) offNextTurnStart();
-                offNextTurnStart = null;
-            }
+            if(eventData.eventIssuer === issuer)
+                reverse.restore(); // runs the cleaner below
+        });
+        data.it.pushCopyCleaner(() => {
+            offNextTurnStart?.();
+            offNextTurnStart = null;
         });
         return true;
     };
@@ -2537,12 +2558,13 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
         const owner = game.getOwner(data.it);
         if(!owner)
             return false;
-        data.it.becomesCopyOf(target, (card) => {
-            game.cardHandler.attachEffectsToCard(card, true);
-        });
         if(!data.it || !(data.it instanceof ItemCard))
             throw new GameError("Invalid source item for becomesCopyOfEternalItemLosesEternalEffect.", toSerializedTranslation("error.behaviorError", { error: "Invalid source item for becomesCopyOfEternalItemLosesEternalEffect."}));
+        // Before the copy, so "on:card:copy:changed" listeners see it non-eternal.
         data.it.setEternal(false);
+        data.it.becomesCopyOf(target, (card) => {
+            game.cardHandler.attachEffectsToCard(card, true);
+        }, emitCopyChanged(game, data.it));
         // Subscribe the copied effects with the current owner
         data.it.onAddInPlay(() => owner);
         return true;
@@ -2551,11 +2573,12 @@ export function becomesCopyOfEternalItemLosesEternalEffect(game: Game): SyncEffe
 
 export function passHandsLeftEffect(game: Game): SyncEffectFunction {
     return (data: EffectData) => {
-        let tempHand = game.players[0]!.hand;
-        for (let i = 0; i < game.players.length; i++) {
-            const nextPlayer = game.players[(i + 1) % game.players.length]!;
-            tempHand = game.cardHandler.setHand(nextPlayer, tempHand);
-        }
+        // Only the loot cards move: free plays and the cards played this turn stay with each player.
+        const cards = game.players.map(p => p.hand._hand);
+        game.players.forEach((p, i) => {
+            const previous = game.players[(i - 1 + game.players.length) % game.players.length]!;
+            p.hand._hand = cards[game.players.indexOf(previous)]!;
+        });
         return true;
     };
 }
@@ -2706,9 +2729,11 @@ export function healEffect(game: Game, amount: number): SyncEffectFunction {
 export function killAllXEffect(game: Game, x: "player" | "monster", excludeSelf: boolean = false): SyncEffectFunction {
     return (data: EffectData) => {
         const set = x === "player" ? game.players : game.monsters;
+        // A monster's "each player dies" (e.g. Dogma) is a kill by the monster, not by the player who triggered it.
+        const killer = x === "player" && data.it instanceof MonsterCard && data.it.entity && !data.it.entity.isDead ? data.it.entity : data.issuer;
         for (const entity of set) {
             if(entity !== data.issuer || !excludeSelf)
-                game.entityHandler.kill(data.issuer, entity, data.cardAndBox);
+                game.entityHandler.kill(killer, entity, data.cardAndBox);
         }
         return true;
     };
@@ -3039,7 +3064,7 @@ export function dealDamageToAPlayerEffect(game: Game, dmg: number, canTargetSelf
 export function removeHalfCountersEffect(game: Game): AsyncEffectFunction {
     return async (data: EffectData) => {
         for(const counter of data.it.counters.counterOwned) {
-            const val = -Math.floor(data.it.counters.getCounter(counter).value / 2);
+            const val = -Math.floor(data.it.counters.value(counter) / 2);
             game.cardHandler.addToCounter(data.issuer, data.it, counter, val);
         }
         return true;
@@ -3083,6 +3108,7 @@ export function addXtoThatDamageEffect(game: Game, x: number): SyncEffectFunctio
     return (data: EffectData) => {
         const val = data.next as number[];
         if(val === null || val === undefined || val.length !== 1) return false;
+        if(val[0]! <= 0) return false; // prevented damage stays prevented
         val[0]! += x;
         return true;
     };
@@ -3613,7 +3639,8 @@ export function nonActivePlayerHelpFight(game: Game): SyncEffectFunction {
                 
                 // Add all effects as a single stack element
                 const effect = (effectData: EffectData): boolean => {
-                    game.entityHandler.entityRewards(eventIssuer, helper)
+                    // "other": the helper already gained any "each player gains" reward.
+                    game.entityHandler.entityRewards(eventIssuer, helper, false, "other")
                     return true;
                 };
                 passive.addPassiveEffectToStack(game, effect, data, `${helper.id} also gains rewards from killing ${target.id}.`);
@@ -3675,13 +3702,21 @@ export function revealHandAndAddFreeCopyEffect(game: Game, issuerIsCurrentPlayer
     };
 }
 
-export function eachPlayerMayDiscardOrTakeDamageEffect(game: Game, damage: number, repeatUntil: number): AsyncEffectFunction {
+/** Rounds in a row without any change after which a "repeat this process" effect stops (prevention may be random, so not only 1). */
+const MAX_UNCHANGED_ROUNDS = 3;
+
+export function eachPlayerMayDiscardOrTakeDamageEffect(game: Game, damage: number, repeatUntil: number, previousState: string | null = null, unchangedRounds: number = 0): AsyncEffectFunction {
 
     return async (data: EffectData) => {
         // Check before each round (the previous round's damage has resolved by now), so no round runs with too few players left.
         if(game.players.filter(p => !p.isDead).length <= repeatUntil)
             return true;
-        passive.addPassiveEffectToStack(game, eachPlayerMayDiscardOrTakeDamageEffect(game, damage, repeatUntil), data, `Each player may discard a card or take ${damage} damage until there are ${repeatUntil} players left alive.`);
+        // Stop if rounds keep changing nothing (e.g. players without cards whose damage is prevented), or this would never end.
+        const state = game.players.map(p => `${p.isDead}:${p.currentHealthPoints}:${p.hand.cards.length}`).join(",");
+        unchangedRounds = state === previousState ? unchangedRounds + 1 : 0;
+        if(unchangedRounds >= MAX_UNCHANGED_ROUNDS)
+            return true;
+        passive.addPassiveEffectToStack(game, eachPlayerMayDiscardOrTakeDamageEffect(game, damage, repeatUntil, state, unchangedRounds), data, `Each player may discard a card or take ${damage} damage until there are ${repeatUntil} players left alive.`);
         let choices = [];
         for (const player of game.players) {
             if (player.isDead) continue;
@@ -3921,7 +3956,7 @@ export function discardHandEffect(game: Game): SyncEffectFunction {
         let success = true;
         for (let idx = handSize - 1; idx >= 0; idx--) {
             if (idx >= 0) {
-                success = success && game.cardHandler.discardFromHandAtIndex(data.issuer, idx, "effect");
+                success = success && game.cardHandler.discardFromHandAtIndex(data.issuer, idx, data.isPayment ? "paiement" : "effect");
             }
         }
         data.addTarget(handSize);
@@ -4215,6 +4250,8 @@ export function putThisOnBottomOfLootDeckEffect(game: Game): SyncEffectFunction 
     return (data: EffectData) => {
         if(data.it instanceof LootCard === false)
             throw new GameError("Card is not a loot card for putThisOnBottomOfLootDeckEffect", toSerializedTranslation("error.behaviorError", { error: "Card is not a loot card for putThisOnBottomOfLootDeckEffect"}));
+        if(data.it.parentCard)
+            return false; // a copy (e.g. Blank Card) can't be put in a deck, so "if you do" fails.
         data.it.afterEffect = "nothing"; // card placement is handled by the effect itself.
         game.cardHandler.addBottomPosition("loot", data.it);
         

@@ -162,6 +162,16 @@ export class Encounters extends Slots<MonsterCard> {
     }
 
     /**
+     * Draws a card from the monster deck onto a specific slot (see draw).
+     *
+     * @param position - The slot index to draw to
+     * @returns The index of the slot the drawn card was placed in (a new slot for an indomitable card).
+     */
+    drawAndGetSlot(position: number): number {
+        return this.draw(position) ? position : this._slots.length - 1;
+    }
+
+    /**
      * Removes the top card from a slot without sending it to discard.
      * Refills or reveals the next card in the slot as needed.
      *
@@ -394,8 +404,7 @@ export class Encounters extends Slots<MonsterCard> {
             throw new GameError("No selection made for searchForBloatEffect.",
                 toSerializedTranslation("error.behaviorError", { error: "No selection made for searchForBloatEffect." }));
         const index:number = this.visible.indexOf(selection as MonsterCard);
-        this.draw(index);
-        return index;
+        return this.drawAndGetSlot(index);
     }
 
     /**

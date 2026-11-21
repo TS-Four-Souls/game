@@ -224,7 +224,7 @@ export class EntityHandler {
   /**
    * Grants coin/loot/treasure rewards when a monster dies to the current player.
    */
-  entityRewards(entity: Monster | Animated, player: Player | null = null, half: boolean = false, reason: "kill" | "other" = "kill"): void {
+  entityRewards(entity: Monster | Animated, player: Player | null = null, half: boolean = false, reason: "kill" | "other" | "double" = "kill"): void {
     if(player === null)
       player = this.game.currentPlayer;
     const rewards = entity.rewards;
@@ -299,19 +299,19 @@ export class EntityHandler {
     });
     
     receiver.die();
-    if(from instanceof Player)
-    {
-      if(from === receiver)
-        from.stats.nbSuicides++;
-      else if(receiver instanceof Player)
-        from.stats.nbPlayerKilled++;
-      else if(receiver instanceof Monster)
-        from.stats.nbMobKilled++;
-    }
-    if(receiver instanceof Player)
-      receiver.stats.nbDeaths++;
     await this.game.executeWhenStackSubset(stackIds, async () => {
       const stackIds = this.game.stack.currentStackIds;
+      if(from instanceof Player)
+      {
+        if(from === receiver)
+          from.stats.nbSuicides++;
+        else if(receiver instanceof Player)
+          from.stats.nbPlayerKilled++;
+        else if(receiver instanceof Monster)
+          from.stats.nbMobKilled++;
+      }
+      if(receiver instanceof Player)
+        receiver.stats.nbDeaths++;
       if (receiver.isEngagedInCombat) {
         this.endCombat();
       }
@@ -362,7 +362,8 @@ export class EntityHandler {
         await this.game.executeWhenStackEmpty(async () => {
           if(this.game.turnHandler.numberOfTurnsSinceBeginning === turnId )
             await this.game.endTurn();});
-    }).catch((error) => {
+    }, true, () => receiver.undoDeath() // cancelled before paying penalties: no penalty, no rewards, no death triggers.
+    ).catch((error) => {
       console.error("Failed to resolve death follow-up", error);
     });
     await this.game.resolveCallbacks();
@@ -603,6 +604,7 @@ export class EntityHandler {
   healEveryone(): void {
     this.players.forEach((p) => this.heal(p));
     this.game.monsters.forEach((m) => this.heal(m));
+    this.animatedList.all.forEach((a) => this.heal(a));
   }
 /** Removes an entity from the combat list if present. */
   removeEntityInCombat(entity: Entity): void {
@@ -629,8 +631,13 @@ export class EntityHandler {
   }
 
 
+  /** Set while an attack declaration spent the attack but its target is not in combat yet (e.g. drawing the top monster). */
+  declaringAttack: boolean = false;
+
   endCombatIfInvalid(player: Player): void
   {
+    if(this.declaringAttack)
+      return;
     if(player.isEngagedInCombat && player.clearOutdatedAttackRequirements(this.game.attackableEntities) && this.entitiesInCombat.length === 1)
       {
         this.endCombat();

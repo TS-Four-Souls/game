@@ -302,6 +302,8 @@ describe("Monsters - Various 2", () => {
         const monster = game.monsters[0]!;
     
         game.actions.declareAttack(player1);
+        await game.actions.declareAttackOnEntity(player1, monster);
+        while (!game.stack.isEmpty()) await game.actions.resolveStack();
         game.entityHandler.addHealth(player1, 10); // Prevent death by damage
         const init = player1.currentHealthPoints;
 

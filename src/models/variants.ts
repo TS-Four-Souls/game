@@ -17,6 +17,8 @@ export function miniDraft(game: Game): void {
                 game.cardHandler.addInPlay(player, card);
                 drawn.splice(drawn.indexOf(card), 1);
             }
+            for(const card of drawn)
+                game.decks.treasure.addBottomPosition(card); // the last card goes on the bottom of the treasure deck
         } 
         return true;
     })());

@@ -37,6 +37,7 @@ import { Encounters } from "./slots/encounters";
 import { Rooms } from "./slots/rooms";
 import { Shop } from "./slots/shop";
 import { TurnHandler } from "./handlers/turnHandler";
+import { LoopHandler } from "./handlers/loopHandler";
 import { miniDraft } from "./variants";
 import { toSerializedTranslation } from "@/utils/translation";
 import { GameError } from "@/models/GameError";
@@ -62,6 +63,7 @@ const END_PHASE_STEPS: readonly TurnStep[] = ["as:turn:end", "on:turn:end", "til
  */
 export class Game {
   private _turnHandler: TurnHandler = new TurnHandler(this);
+  private _loopHandler: LoopHandler = new LoopHandler(this);
   private _random: () => number = () => {throw new GameError("Random generator not initialized yet.", 
     toSerializedTranslation("error.behaviorError", {error: "Random generator not initialized yet."}))
   };
@@ -72,13 +74,15 @@ export class Game {
   private _timerIsUsed = false; // true if the timer option is active.
   private _stack: Stack = new Stack(this);
   private _emitter: GameEventEmitter;
-  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void | Promise<void>, cancellable: boolean}[] = [];
+  private _stackSubsetCallbacks: {stackIds: number[], callback: () => void | Promise<void>, cancellable: boolean, onCancel?: () => void}[] = [];
   /** One collector per emit in progress (innermost last): the stack elements pushed by its listeners. */
   private _emissionCollectors: StackElement[][] = [];
   private _historicHandler: HistoricHandler = new HistoricHandler(this);
   private _gameOver: boolean = false;
   private _isWon: boolean = false;
   private _turnStep: TurnStep = TURN_STEPS[0];
+  /** Turn whose start-of-turn steps (recharge, start triggers, loot step) may still proceed. */
+  private _turnStructureTurnId: number = -1;
   private _gameStateSerializer: GameStateSerializer;
   readonly gameParameters = new GameParameters(() => this.dispatch());
   readonly _assertHandler: AssertHandler = new AssertHandler(this);
@@ -145,6 +149,9 @@ export class Game {
   }
   get turnHandler(): TurnHandler {
     return this._turnHandler;
+  }
+  get loopHandler(): LoopHandler {
+    return this._loopHandler;
   }
   get reachedEnd(): boolean {
     return this._isWon;
@@ -679,6 +686,7 @@ export class Game {
   reset(newSeed: boolean = true): void {
     this._historicHandler = new HistoricHandler(this);
     this._turnHandler = new TurnHandler(this);
+    this._loopHandler = new LoopHandler(this);
     this._entityHandler = new EntityHandler(this);
     this._cardHandler = new CardHandler(this);
     this.seed = (newSeed ? "" : this.seed); // If newSeed is true, set to a random value in the setter.
@@ -692,6 +700,7 @@ export class Game {
     this._stackSubsetCallbacks = [];
     this._isWon = false;
     this._turnStep = TURN_STEPS[0];
+    this._turnStructureTurnId = -1;
   }
 
 ////////////////////////////////////// Turn Structure //////////////////////////////////////
@@ -712,16 +721,24 @@ export class Game {
     const itemsToRecharge = [...player.unchargedItems];
     const charactersToRecharge = [player.character];
     const eventData = { eventIssuer: player, itemsToRecharge: itemsToRecharge, charactersToRecharge: charactersToRecharge};
-    
+    // The turn structure is not on the stack: cancelling everything must not stop it, unless the turn is ending.
+    const turnId = this.turnHandler.turnId;
+    this._turnStructureTurnId = turnId;
+    const whenStackSubset = async (ids: number[], callback: () => Promise<void>): Promise<void> =>
+      this.executeWhenStackSubset(ids, async () => {
+        if (this.turnStructureProceeds(turnId))
+          await callback();
+      }, false);
+
     this.emit("on:turn:start:before:recharge:step", eventData);
-    await this.executeWhenStackEmpty(async () => {
+    await whenStackSubset([], async () => {
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.charactersToRecharge);
       this.cardHandler.rechargeMultiple(player, "rechargeStep", eventData.itemsToRecharge);
       const stackIds = this.stack.currentStackIds;
       this.emit("as:turn:start", { eventIssuer: player });
-      await this.executeWhenStackSubset(stackIds, async () => {
+      await whenStackSubset(stackIds, async () => {
         this.emit("on:turn:start", { eventIssuer: player });
-        await this.executeWhenStackEmpty(async () => {
+        await whenStackSubset([], async () => {
           const lootStep = new LootStepOnStack(this.currentPlayer, 1, this);
           this.addToStack(lootStep);
         });
@@ -734,6 +751,21 @@ export class Game {
    */
   lootStep(player: Player, numberToLoot: number): void {
     this.loot(player, numberToLoot, "lootStep");
+    this.grantTurnLootPlays(player);
+  }
+
+  /** Whether the start-of-turn steps of turn turnId should still proceed. */
+  turnStructureProceeds(turnId: number): boolean {
+    return this._turnStructureTurnId === turnId && this.turnHandler.turnId === turnId && !this.isEndPhase;
+  }
+
+  /** The turn is about to be ended by an effect: its remaining start-of-turn steps are skipped. */
+  skipTurnStructure(): void {
+    this._turnStructureTurnId = -1;
+  }
+
+  /** Grants the loot plays of the turn once the loot step is over, even if its loot was cancelled. */
+  grantTurnLootPlays(player: Player): void {
     player.addLootPlay(this.gameParameters.lootPlayPerTurn.value);
     this.emit("on:your:turn", { eventIssuer: player });
   }
@@ -756,8 +788,8 @@ export class Game {
         for (const player of this.players) {
           player.resetTurnFlags();
         }
-        for (const monster of this.monsters) {
-          monster.resetEntityFlags();
+        for (const entity of [...this.monsters, ...this.animatedList.all]) {
+          entity.resetEntityFlags();
         }
         this.turnHandler.endTurn();
         this.verifyTimerLosingCondition();
@@ -839,7 +871,7 @@ export class Game {
   }
 
   /** Draws a new monster into the chosen encounter slot during combat. */
-  drawMonster(player: Player, position: number): string {
+  drawMonster(player: Player, position: number): number {
     this.assert.gameOngoing();
     this.assert.isAlive(player);
     this.assert.positiveNumber(position);
@@ -864,9 +896,8 @@ export class Game {
       );
     }
 
-    this.encounters.draw(position);
-
-    return `You have drawn a new monster at position ${position}.\n`;
+    // An indomitable monster is drawn in a new slot: return where the monster actually is.
+    return this.encounters.drawAndGetSlot(position);
   }
   
   /** Builds a full player-scoped game state payload for API/UI clients. */
@@ -924,6 +955,12 @@ export class Game {
   }
 
   dispatch(): void {
+    // Serializing the state for clients prunes outdated attack requirements and ends a combat left without attacks.
+    // Do it here, so a replay (which serializes nothing) changes the game at the same moments as the live game.
+    for (const player of this._encounters !== undefined ? this.players : []) { // nothing to clean during setup
+      player.clearOutdatedAttackRequirements(this.attackableEntities);
+      this.entityHandler.endCombatIfInvalid(player);
+    }
     this._onStateChange.dispatch();
   }
 
@@ -985,6 +1022,7 @@ export class Game {
    * @return the stack ID of the added element.
    */
   addToStack(item: StackElement): number {
+    this.loopHandler.onAddedToStack();
     if (item instanceof EffectOnStack && !item.data.issuer) {
       throw new GameError("EffectOnStack must have an issuer.",
         toSerializedTranslation("error.behaviorError", {error: "EffectOnStack must have an issuer."}));
@@ -1235,14 +1273,24 @@ export class Game {
    * Example: A monster dies, it has an on death effect. To trigger, the monster must be dead, and when a monster dies, its card is dicarded (usually).
    * But we want to keep the card in the slot while its death effect is not resolved. It is possible to do so with this function.
    * A non-cancellable callback finishes something that already resolved: it survives resetCallbacks (e.g. Pitfall!).
+   * onCancel runs instead of a cancellable callback dropped by resetCallbacks.
    */
   async executeWhenStackSubset(
     ids: number[],
     callback: () => void | Promise<void>,
-    cancellable: boolean = true
+    cancellable: boolean = true,
+    onCancel?: () => void
   ): Promise<void> {
-    this._stackSubsetCallbacks.push({stackIds: ids, callback, cancellable});
+    this._stackSubsetCallbacks.push({stackIds: ids, callback, cancellable, onCancel});
     await this.resolveCallbacks();
+  }
+
+  /**
+   * Schedules a non-cancellable callback for when the stack is empty, without resolving callbacks now:
+   * safe to call while the stack is being cleared.
+   */
+  scheduleWhenStackEmpty(callback: () => void | Promise<void>): void {
+    this._stackSubsetCallbacks.push({stackIds: [], callback, cancellable: false});
   }
 
   hasCallbacks(): boolean {
@@ -1274,9 +1322,11 @@ export class Game {
     }
   }
   /**
-   * Cancels the pending callbacks, except the non-cancellable ones.
+   * Cancels the pending callbacks, except the non-cancellable ones (unless all is set).
    */
-  resetCallbacks(): void {
-    this._stackSubsetCallbacks = this._stackSubsetCallbacks.filter((e) => !e.cancellable);
+  resetCallbacks(all: boolean = false): void {
+    const cancelled = this._stackSubsetCallbacks.filter((e) => all || e.cancellable);
+    this._stackSubsetCallbacks = this._stackSubsetCallbacks.filter((e) => !all && !e.cancellable);
+    cancelled.forEach((e) => e.onCancel?.());
   }
 }

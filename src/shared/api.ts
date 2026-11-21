@@ -248,6 +248,7 @@ const pendingSelectionReasonSchema = z.union([
   z.literal("coinGift"),
   z.literal("miniDraft"),
   z.literal("mulliganCharacters"),
+  z.literal("infiniteLoop"),
 ]);
 export type PendingSelectionReason = z.infer<
   typeof pendingSelectionReasonSchema

@@ -2,6 +2,7 @@ import { GameParameters } from "@/models/gameParameters";
 import { Team, type DeckConfigPatch, type PendingSelectionReason, type SerializedTranslation } from "@/shared/api";
 import { shuffle } from "@/utils/auxiliary";
 import type { BsoulCard, MonsterCard, RoomCard, TreasureCard } from "../models/cards";
+import { MonsterCard as MonsterCardClass } from "../models/cards";
 import { Player } from "../models/entities/player";
 import { Game } from "../models/game";
 
@@ -194,7 +195,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         playerCount = 2,
         bonusSouls = [],
         rooms = false,
-        randomSeed = "",
+        randomSeed = process.env.TEST_SEED ?? "", // TEST_SEED reproduces a failing random setup
         forbiddenCards = [],
         parameters = [],
     } = config;
@@ -248,6 +249,15 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
         }
     }
 
+    // An indomitable monster drawn at game start opens an extra slot that the forced monsters don't replace:
+    // keep them at the bottom of the monster deck.
+    const indomitables: MonsterCard[] = [];
+    let indomitable: MonsterCard | undefined;
+    while ((indomitable = game.decks.monster.getCard(c => c.indomitable)))
+        indomitables.push(indomitable);
+    for (const card of indomitables)
+        game.decks.monster.addBottomPosition(card);
+
     // initialize monster deck with specified cards. Ensuring encounters to be initialized with expected monsters.
     for (const slug of monsterDeck) {
         const monsterCard = game.obtainCard(slug);
@@ -263,6 +273,17 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
     // Start the game
     const charas = charactersFull?.map((slug, index) => ({issuer: `Player ${index + 1}`, character: slug, team: Team[`Team${index + 1}` as keyof typeof Team]}));
     await game.start(charas, false);
+    if (monsters.length > 0) {
+        // The forced monsters replace the starting ones: drop the starting monsters' triggers (e.g. Big Horn's damage),
+        // which would otherwise hold the turn before its loot step.
+        const monsterTriggers = () => game.stack.elements.filter(el => (el as { data?: { it?: unknown } }).data?.it instanceof MonsterCardClass);
+        // Resuming the turn can trigger them again (e.g. at the start of the turn): repeat until none is left.
+        for (let i = 0; i < 10 && monsterTriggers().length > 0; i++) {
+            for (const el of monsterTriggers())
+                game.stack.cancelElement(el);
+            await game.resolveCallbacks();
+        }
+    }
     const players = game.players;
     dischargeEachItemsAndRemoveCoins(game);
     const el = game.stack.elements.find(el => el.json.type === "lootStep")!
@@ -303,6 +324,13 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
             treasureCard = undefined;
         }
 
+        // Copy the card rather than taking it from a player (e.g. Eden's starting item).
+        if (!treasureCard) {
+            const template = (game.decks["treasure"] as any)?._set?.cards?.find((card: TreasureCard) => card.slug === slug) as TreasureCard | undefined;
+            if (template) {
+                treasureCard = game.cardHandler.copyCard(template) as TreasureCard;
+            }
+        }
         if (!treasureCard) {
             for (const player of game.players) {
                 const inPlayTreasure = player.inPlay.find((card): card is TreasureCard => card.type === "treasure" && card.slug === slug);
@@ -311,13 +339,6 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
                     treasureCard = inPlayTreasure;
                     break;
                 }
-            }
-        }
-
-        if (!treasureCard) {
-            const template = (game.decks["treasure"] as any)?._set?.cards?.find((card: TreasureCard) => card.slug === slug) as TreasureCard | undefined;
-            if (template) {
-                treasureCard = game.cardHandler.copyCard(template) as TreasureCard;
             }
         }
 
@@ -337,7 +358,7 @@ export async function setupTestGame(config: GameSetupConfig = {}): Promise<GameS
     if (players.length > 1) result.player2 = players[1];
     if (players.length > 2) result.player3 = players[2];
     if (players.length > 3) result.player4 = players[3];
-    game.resetCallbacks();
+    game.resetCallbacks(true); // also drops the pending turn structure
 
     return result;
 }

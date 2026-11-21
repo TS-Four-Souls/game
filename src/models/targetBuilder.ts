@@ -637,7 +637,7 @@ export class TargetBuilder {
                 return toSerializedTranslation("capability.notEnoughCoin");
             }
         }
-        const health = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\s+[hp]:?/u);
+        const health = parseNumber(s, /^\[paid effect\] pay\s+(\d+)\s*\[hp\]/u);
         if (health !== null) {
             if (player.currentHealthPoints < health) {
                 return toSerializedTranslation("capability.notEnoughHealth");

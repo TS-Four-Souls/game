@@ -1192,7 +1192,8 @@ describe("Requiem Loots ", () => {
         await game.actions.resolveStack();
         await game.actions.resolveStack();
         expect(player1.coins).toBe(0);
-        expect(player1.isDead).toBe(true);
+        // The death ends player1's turn: count it rather than check isDead, which the next turn resets.
+        expect(player1.stats.nbDeaths).toBe(1);
     });
     
     it("blood_puppy", async () => {

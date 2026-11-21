@@ -69,7 +69,7 @@ function soulOfGluttonyEffect(game: Game, card: Card): OffEffectFunction {
         const { eventIssuer, card: lootCard } = eventData;
         if (eventIssuer.hand.length < 10) return;
         game.cardHandler.addSoul(eventIssuer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
     return offEffect;
 }
@@ -87,7 +87,7 @@ function soulOfGreedEffect(game: Game, card: Card): OffEffectFunction {
         const { eventIssuer, coinGained } = eventData;
         if (eventIssuer.coins < 25) return;
         game.cardHandler.addSoul(eventIssuer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
     return offEffect;
 }
@@ -106,7 +106,7 @@ function soulOfGuppyEffect(game: Game, card: Card): OffEffectFunction {
         if (eventIssuer.inPlay.filter((c: Card) => c instanceof ItemCard && c.isGuppy()).length < 2)
             return;
         game.cardHandler.addSoul(eventIssuer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
     return offEffect;
 }
@@ -154,7 +154,7 @@ function soulOfLustEffect(game: Game, card: Card): OffEffectFunction {
         game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
         if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(game.currentPlayer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
 
     return offDeath;
@@ -174,7 +174,7 @@ function soulOfPrideEffect(game: Game, card: Card): OffEffectFunction {
         game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
         if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(game.currentPlayer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
 
     return offDeath;
@@ -194,7 +194,7 @@ function soulOfWrathEffect(game: Game, card: Card): OffEffectFunction {
         game.cardHandler.addToCounter(eventData.eventIssuer, card, "normal", 1);
         if(card.counters.value("normal") < 6) return;
         game.cardHandler.addSoul(game.currentPlayer, card);
-        cleanup();
+        if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
     });
 
     return offDeath;
@@ -262,7 +262,7 @@ function strawberrySoulEffect(game: Game, card: Card): OffEffectFunction {
         playerRolls.set(eventData.eventIssuer.id, (playerRolls.get(eventData.eventIssuer.id) ?? 0) + 1);
         if(playerRolls.get(eventData.eventIssuer.id)! >= 3) {
             game.cardHandler.addSoul(eventData.eventIssuer, card);
-            cleanup();
+            if ((card as BsoulCard).granted) cleanup(); // a prevented soul stays available
         }
     });
 

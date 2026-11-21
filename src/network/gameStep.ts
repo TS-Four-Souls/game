@@ -80,6 +80,7 @@ export const enterGameStep = (
       room.game = newGame;
 
       attachGameEventListeners(room);
+      roomManager.attachGameRecordListeners(room); // the rolled-back game must still record its end
 
       sendRoomChangedToAll(room);
 

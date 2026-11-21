@@ -86,7 +86,9 @@ export function attackRollsAgainstEachOtherPlayerEffect(game: Game): SyncEffectF
         offAttackDeclared = game.emitter.on("on:attack:declared:monster", (eventData: OnAttackDeclaredMonsterData) => {
             const { eventIssuer, monster } = eventData;
             if (data.issuer !== monster[0]) return;
-                const otherPlayers = game.players.filter(p => p !== eventIssuer);
+                // In turn order from the attacker's left; subscribed in reverse since the stack resolves the last one first.
+                const idx = game.players.indexOf(eventIssuer);
+                const otherPlayers = [...game.players.slice(idx + 1), ...game.players.slice(0, idx)].reverse();
                 for(const player of otherPlayers) {
                     makeAnAttackRollAfterEachAttackRollEffect(game)(new EffectData(data.it, () => player, [], data.visualEffectBox));
                 }
@@ -497,7 +499,7 @@ return (data: EffectData) => {
 
 export function doubleRewardsOnDeathRollEffect(game: Game): SyncEffectFunction {
     return (data: EffectData): boolean => {
-        game.entityHandler.entityRewards(data.issuer as Monster);
+        game.entityHandler.entityRewards(data.issuer as Monster, null, false, "double"); // "double": not doubled again by other doublers
         return true;
     }
 }
@@ -798,6 +800,7 @@ export function combatDamageIsEffect(game: Game, s: string): SyncEffectFunction 
             if(numbers.includes((source as DiceRoll).value) === false) return;
             // Add all effects as a single stack element
             const effect = (effectData: EffectData): boolean => {
+                if((damageArray[0] ?? 0) <= 0) return true; // prevented damage stays prevented
                 if(effectOnDamage === "double") {
                     damageArray[0]! *= 2;
                 } else {
@@ -827,6 +830,7 @@ export function onAttackingPlayerActivatesItemEffect(game: Game, s: string): Syn
             const { eventIssuer, item } = eventData;
             if (!(eventIssuer instanceof Player)) return;
             if (!(eventIssuer.isEngagedInCombat)) return;
+            if (!data.issuer.isEngagedInCombat) return; // only the player attacking this monster
             const newData = new EffectData(data.it, () => eventIssuer as Player, [], data.visualEffectBox);
             addPassiveEffectToStack(game, effect.effectFunction, newData, `Each time the attacking player activates an item, they ${rest}`);
         });
@@ -1250,6 +1254,7 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
         const selectedMonsters = selection.selected;
         const selectedIndices = selectedMonsters.map(c => indices.get(c.name)!);
         
+        const placedIndices = new Set<number>();
         for(let i=0; i < bosses.length; i++)
         {
             if(selectedIndices[i%selectedIndices.length]! < 0)
@@ -1257,9 +1262,9 @@ export function bossRushEffect(game: Game, bossCount: number): AsyncEffectFuncti
                     toSerializedTranslation("error.behaviorError", { error: "Selected monster for boss rush effect not found in encounter slots." })
                 );
             const slotIndex = selectedIndices[i%selectedIndices.length]!;
-            game.encounters.draw(slotIndex);
+            placedIndices.add(game.encounters.drawAndGetSlot(slotIndex)); // an indomitable boss goes to a new slot
         }
-        const monsters = selectedIndices.map(idx => game.encounters.monsters[idx]!);
+        const monsters = [...placedIndices].map(idx => game.encounters.monsterIn(idx)!);
         game.encounters.removeCard(data.it);
         game.encounters._deck.addDiscardTop(data.it); 
         game.entityHandler.playerMustAttack(game.currentPlayer, monsters, data.it, false);
@@ -1364,8 +1369,12 @@ export function onThisTakesCombatDamageEffect(game: Game, s: string, rolls: numb
 export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): SyncEffectFunction {
     return (data: EffectData) => {
         let offDamage: (() => void) | null = null;
+        let offEndTurn: (() => void) | null = null;
         let damageCount = 0;
 
+        offEndTurn = game.emitter.on("on:turn:end", () => {
+            damageCount = 0; // counted each turn
+        });
         offDamage = game.emitter.on("on:damage:taken", (eventData: OnDamageTakenData) => {
             const { eventIssuer, target, source, damage } = eventData;
             if (data.issuer !== eventIssuer) return;
@@ -1381,6 +1390,8 @@ export function onEveryOtherDamageEffect(game: Game, effect: EffectFunction): Sy
         data.it.cleaners.push(() => {
             offDamage?.();
             offDamage = null;
+            offEndTurn?.();
+            offEndTurn = null;
         });
         return true;
     };
@@ -1443,10 +1454,12 @@ export function noCombatDamageEveryOtherAttackRollEffect(game: Game): SyncEffect
 
 
         offEndTurn = game.emitter.on("on:turn:end", (eventData: OnTurnEndData) => {
-            prevent = false; // reset at end of turn
+            prevent = true; // reset at end of turn: the next first roll is toggled to deal damage
         });
 
         data.it.cleaners.push(() => {
+            offAttackRoll?.();
+            offAttackRoll = null;
             offDamageWouldTake?.();
             offDamageWouldTake = null;
             offEndTurn?.();

@@ -241,11 +241,13 @@ export class Player extends Entity {
   }
 
   requirementListJSON(game: Game): {target: IdentifierType | "topDeck", source: IdentifierType}[] {
-    this.clearOutdatedAttackRequirements(game.attackableEntities);
-    if(this.mustAttackEntity.length === 0) return [];
+    // Read-only: outdated requirements are skipped, not removed (the game state is built from this).
+    const attackable = game.attackableEntities;
+    const requirements = this.mustAttackEntity.filter(req => !(req.targets instanceof Array && req.targets.every(t => !attackable.includes(t))));
+    if(requirements.length === 0) return [];
     const list: {target: IdentifierType | "topDeck", source: IdentifierType}[] = [];
     let sourceAny = undefined;
-    for(const req of this.mustAttackEntity)
+    for(const req of requirements)
     {
       if(req.targets === "topDeck")
         list.push({ target: "topDeck", source: req.source.jsonAPI });

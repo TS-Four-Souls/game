@@ -57,6 +57,8 @@ describe("CardHandler.reveal", () => {
         player2 = setup.player2!;
         player3 = setup.player3!;
         await game.actions.resolveStack();
+        await game.actions.resolveStack();
+        await game.actions.resolveStack();
         expect(game.stack.isEmpty()).toBe(true);
         expect(game.hasPendingSelections).toBe(false);
         useRealSelectMultiple(game);

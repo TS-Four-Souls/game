@@ -457,6 +457,11 @@ export class DeathOnStack extends StackElement {
   async onResolve(): Promise<void> {
     await this.game.entityHandler.resolveDeath(this.receiver, this.from, this.source);
   }
+  /** A cancelled death leaves the entity alive with 1 HP. */
+  override onCancel(game: Game): void {
+    if (!this.receiver.isDead)
+      this.receiver.undoDeath();
+  }
 
   override get json(): DeathOnStackJson {
     const sourceName = this.source instanceof DiceRoll ? this.source.json : this.source.card.jsonAPI;
@@ -482,12 +487,21 @@ export class LootStepOnStack extends StackElement {
   _player: Player
   _nbLoots: number;
   game: Game;
+  private _turnId: number;
   
   constructor(player: Player, nbLoots: number, game: Game) {
     super();
     this._player = player;
     this._nbLoots = nbLoots;
     this.game = game;
+    this._turnId = game.turnHandler.turnId;
+  }
+  /** Cancelling the loot step cancels its loot, not the loot plays of the turn. */
+  override onCancel(game: Game): void {
+    game.scheduleWhenStackEmpty(() => {
+      if (game.turnStructureProceeds(this._turnId))
+        game.grantTurnLootPlays(this.player);
+    });
   }
   override get json(): LootStepJson {
     return {
@@ -613,8 +627,9 @@ export class EffectOnStack extends StackElement {
     protected _description: string;
     protected _type: EffectTypeOnStack;
     protected _visualEffectBox: VisualEffectBox | undefined;
+    protected _onCancel: (() => void) | undefined;
 
-    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack, visualEffectBox?: VisualEffectBox) {
+    constructor(effectFunction: EffectFunction, data: EffectData, description: string, type: EffectTypeOnStack, visualEffectBox?: VisualEffectBox, onCancel?: () => void) {
         super();
         // if(!data)
         //     throw new GameError("EffectOnStack constructor: data is undefined or null.");
@@ -623,6 +638,7 @@ export class EffectOnStack extends StackElement {
         this._description = prepareEffectString(description);
         this._type = type;
         this._visualEffectBox = visualEffectBox;
+        this._onCancel = onCancel;
     }
     async onResolve(): Promise<boolean> {
         return this._effectFunction(this._data);
@@ -655,6 +671,7 @@ export class EffectOnStack extends StackElement {
       const card = this._data.it;
       if(card instanceof MonsterCard && (card.isEvent || card.isCurse))
         game.cardHandler.discard(card);
+      this._onCancel?.();
     }
 
     override get debugLogs(): string {

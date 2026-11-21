@@ -25,7 +25,7 @@ import { Monster } from "@/models/entities/monster";
 import { Player } from "@/models/entities/player";
 import type { DeckType, DeckTypeToCardType, DecksCollection, EffectType, TargetsSelector } from "@/models/types/cardTypes";
 import { EffectData } from "@/models/types/cardTypes";
-import { type RechargeReason } from '@/models/types/eventTypes';
+import { type OnSoulGainedOrRemovedData, type RechargeReason } from '@/models/types/eventTypes';
 import { loadCards } from "@/utils/loadCards";
 import { Effect, PassiveEffect } from '../effects/effects';
 import { Game } from '../game';
@@ -366,7 +366,7 @@ export class CardHandler {
     
     if (card instanceof ItemCard) 
       if (from.inPlay.includes(card)) {
-        this.removeInPlay(from, card, false);
+        this.removeInPlay(from, card, false, true);
         this.addInPlay(to, card);
         return true;
       }
@@ -406,8 +406,8 @@ export class CardHandler {
     const owner1 = this.game.getOwner(item1);
     const owner2 = this.game.getOwner(item2);
     if (owner1 && owner2) {
-      this.removeInPlay(owner1, item1, false);
-      this.removeInPlay(owner2, item2, false);
+      this.removeInPlay(owner1, item1, false, true);
+      this.removeInPlay(owner2, item2, false, true);
       this.addInPlay(owner1, item2);
       this.addInPlay(owner2, item1);
       return true;
@@ -481,18 +481,17 @@ export class CardHandler {
       card: item.jsonAPI,
     })
     this.game.addToStack(effectOnStack);
-    if (effectId === "tap") {
-      if (item !== player.character) {
-        this.game.emit("on:item:activated", {
-          eventIssuer: player,
-          item: item,
-        });
-      }
-      this.game.emit("on:card:activated", {
+    if (effectId === "tap" && item !== player.character) {
+      this.game.emit("on:item:activated", {
         eventIssuer: player,
         item: item,
       });
     }
+    this.game.emit("on:card:activated", {
+      eventIssuer: player,
+      item: item,
+      effectId,
+    });
     return true;
   }
 
@@ -573,9 +572,16 @@ export class CardHandler {
     return true;
   }
 
-  /** Removes an in-play card from player and runs cleanup triggers. */
-  removeInPlay(player: Player, card: ItemCard, removeCounter=true): boolean {
-    card.cleanup();
+  /**
+   * Removes an in-play card from player and runs cleanup triggers.
+   * @param changeOfControl - the card stays in play for another player (addInPlay follows): only its abilities are
+   * unsubscribed, its copy state (e.g. a transformed Modeling Clay) is kept.
+   */
+  removeInPlay(player: Player, card: ItemCard, removeCounter=true, changeOfControl=false): boolean {
+    if (changeOfControl)
+      card.unsubscribeAbilities();
+    else
+      card.cleanup();
     if(removeCounter)
       for(const counterType of card.counters.counterOwned)
         this.addToCounter(this.game.currentPlayer, card, counterType, -(card.counters.getIfDefined(counterType) || 0));
@@ -613,7 +619,7 @@ export class CardHandler {
     for (const p of this.game.players) {
       if (p !== player) {
         if (p.inPlay.includes(target)) {
-          if(this.removeInPlay(p, target, false)) {
+          if(this.removeInPlay(p, target, false, true)) {
             this.addInPlay(player, target);
             return true;
           }
@@ -971,9 +977,7 @@ export class CardHandler {
     if(!slot || !(slot instanceof MonsterCard) || this.game.encounters.coverableSlots.includes(slot) === false || index === -1)
         throw new GameError("No target monster for ambushEffect", toSerializedTranslation("error.behaviorError", { error: "No target monster for ambushEffect"}));
     // parse a copy of the loot card as a monster card and add it to the encounter slot.
-    const monsterCard = loot.json as MonsterCardType;
-    monsterCard.type = CardType.Monster;
-    monsterCard.subtype = MonsterCardSubtype.BasicMonster;
+    const monsterCard = { ...loot.json, type: CardType.Monster, subtype: MonsterCardSubtype.BasicMonster } as MonsterCardType;
     const monsterTMP = createCardFromJson(this.decks.monster._set.length, this.allocateCardGlobalId(), monsterCard) as MonsterCard;
     const monster = this.copyCard(monsterTMP) as MonsterCard;
     this.game.decks.monster.addTopPosition(monster);
@@ -1015,17 +1019,18 @@ export class CardHandler {
    * Gives a soul card to a player.
    */
   addSoul(player: Player, soulCard: Card): void {
+    soulCard.setEternal(false);
+    const eventData: OnSoulGainedOrRemovedData = { eventIssuer: player, soul: soulCard };
+    this.game.emit("on:soul:gained:before", eventData);
+    if(eventData.soul === null) {
+      // A prevented bonus soul stays available; any other prevented soul is discarded instead of leaving the game.
+      if (eventData.prevented && !(soulCard instanceof BsoulCard))
+        this.discard(soulCard);
+      return;
+    }
     if (soulCard instanceof BsoulCard && soulCard.granted === false)
     {
       soulCard.granted = true;
-    }
-    soulCard.setEternal(false);
-    const eventData = { eventIssuer: player, soul: soulCard };
-    this.game.emit("on:soul:gained:before", eventData);
-    if(eventData.soul === null)
-      return;
-    if (soulCard instanceof BsoulCard && soulCard.granted === false)
-    {
       this.game.addAnimation({
         id: this.game.nextAnimationId,
         type: "obtainBonusSoul",
@@ -1054,7 +1059,7 @@ export class CardHandler {
     if(result)
       {
         card.cleanup();
-        this.game.emit("on:soul:removed", { eventIssuer: player, card });
+        this.game.emit("on:soul:removed", { eventIssuer: player, soul: card });
       }
     return result;
   }

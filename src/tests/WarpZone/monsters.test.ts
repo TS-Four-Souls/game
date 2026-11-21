@@ -333,6 +333,7 @@ describe("Warp Zone Treasures", () => {
         const card1 = game.obtainCard("rwz-zombie_jesus") as MonsterCard;
         game.encounters.forceSetMonsterAtSlot(0, card1);
         const mob = game.monsters.find(m => m.card === card1)!
+        game.random = () => 0.9; // rolls 6: kill the player to the left (a 1-2 kills nobody)
         await game.endTurn();
         await game.actions.resolveStack();
         await game.actions.resolveStack();

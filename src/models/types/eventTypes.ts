@@ -1,5 +1,5 @@
 import type { SerializedTranslation, CounterType } from '@/shared/api';
-import type { Card, CharacterCard, ItemCard, LootCard } from '../cards';
+import type { Card, CharacterCard, ItemCard, LootCard, RoomCard } from '../cards';
 import { Animated } from "../entities/animated";
 import type { Entity } from '../entities/entity';
 import type { Monster } from '../entities/monster';
@@ -151,6 +151,7 @@ export interface OnRollData {
 export interface OnSoulGainedOrRemovedData {
   eventIssuer: Player;
   soul: Card | null;
+  prevented?: boolean;
 }
 
 /** Data emitted when a character is set */
@@ -191,7 +192,7 @@ export interface OnDeathRewardsData {
   entity: Entity,
   eventIssuer: Player,
   half: boolean,
-  reason: "kill" | "other"
+  reason: "kill" | "other" | "double"
 }
 
 /** Data emitted when a player gains items */
@@ -203,6 +204,12 @@ export interface OnItemGainedData {
 /** Data emitted after an item drawn from the treasure deck entered play (given or stolen items are not gained). */
 export interface OnItemGainedAfterData {
   eventIssuer: Player;
+  card: Card;
+}
+
+/** Data emitted after a card became a copy of another card, or got its original state back (its name may have changed). */
+export interface OnCardCopyChangedData {
+  eventIssuer: Player | null; // the card's controller
   card: Card;
 }
 
@@ -323,6 +330,13 @@ export interface OnItemActivatedData {
   item: ItemCard;
 }
 
+/** Data emitted when any ability (tap or paid) of an item, character or room is activated */
+export interface OnCardActivatedData {
+  eventIssuer: Player;
+  item: ItemCard | RoomCard;
+  effectId: number | "tap";
+}
+
 /** Data emitted when a counter is added to an entity */
 export interface OnCounterModifiedData {
   eventIssuer: Entity;
@@ -432,7 +446,7 @@ export interface TriggerEventDataMap {
   "on:get:monster:evasion": OnGetMonsterEvasionData;
   "on:enter:play:after": OnEnterPlayAfterData;
   "on:item:activated": OnItemActivatedData;
-  "on:card:activated": OnItemActivatedData;
+  "on:card:activated": OnCardActivatedData;
   "on:can:declare:attack": OnCanDeclareAttackData;
   "on:priority:passes": OnPriorityPassesData;
   "on:item:destroyed": OnItemDestroyedData;
@@ -453,6 +467,7 @@ export interface TriggerEventDataMap {
   "on:item:gained": OnItemGainedData;
   "on:item:gained:after": OnItemGainedAfterData;
   "on:item:removed:after": OnItemRemovedAfterData;
+  "on:card:copy:changed": OnCardCopyChangedData;
   "on:card:discarded:before": OnCardDiscardBeforeData;
   "on:death:rewards": OnDeathRewardsData;
 }

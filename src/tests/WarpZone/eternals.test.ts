@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { setTimeout } from "timers/promises";
 import { Game } from "../../models/game";
 import { Player } from "../../models/entities/player";
-import { setupTestGame } from "../testHelpers";
+import { emptyHands, setupTestGame } from "../testHelpers";
 import { AttackRollData, DiceRoll } from "@/models/stackElement";
 import { executeActivateRequest } from "@/utils/gameRequestHelpers";
 import { TargetBuilder } from "@/models/targetBuilder";
@@ -1223,9 +1223,9 @@ describe("Four Souls+2 Eternal Items", () => {
             await resolveWholeStack();
             const eternal = player1.inPlay[0]! as ItemCard;
             game.cardHandler.recharge(eternal, "other");
+            emptyHands(game); // first: the only A Dime! may have been looted
             const first = game.obtainCard("b2-a_penny") as LootCard;
             const second = game.obtainCard("b2-a_dime") as LootCard;
-            player2.hand.cards.slice().forEach(c => game.cardHandler.removeCardFromHand(player2, c));
             game.cardHandler.addCardToHand(player2, first);
             game.cardHandler.addCardToHand(player2, second);
             const mathRandom = Math.random;

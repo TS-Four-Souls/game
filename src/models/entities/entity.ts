@@ -103,6 +103,11 @@ export abstract class Entity {
     this._currentHealthPoints = 0;
     this._died = true;
   }
+  /** The death was cancelled before it finished resolving: the entity is alive with 1 HP. */
+  undoDeath(): void {
+    this._died = false;
+    this._currentHealthPoints = Math.min(1, this._healthPoints);
+  }
   /** An entity if it has been marked as dead. 
    * Note that an entity may have 0 health points but not be dead if their death has not been resolved.
   */

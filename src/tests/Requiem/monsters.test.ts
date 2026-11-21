@@ -1,4 +1,4 @@
-import { MonsterCard } from "@/models/cards";
+import { MonsterCard, MonsterType } from "@/models/cards";
 import { DiceRoll } from "@/models/stackElement";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Player } from "../../models/entities/player";
@@ -614,6 +614,8 @@ describe("Requiem Monsters ", () => {
         
         game.encounters.forceSetMonsterAtSlot(0, mob);
         const ent = game.monsters[0]!;
+        // The deck is shuffled before the slot refills: keep other events out (e.g. Golden Troll Bomb kills the cursed player).
+        while (game.decks.monster.getCard(c => c.encounterType === MonsterType.EVENT && !c.isCurse)) ;
         game.random = () => 0.01;
         game.rollDice(player2, mob);
         await game.actions.resolveStack();

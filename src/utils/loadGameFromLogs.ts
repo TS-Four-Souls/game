@@ -216,6 +216,14 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
   ).sort((a, b) => a.payload.requestId - b.payload.requestId);
   game.setSelectionHandlerNextId(submitSelectionEntries.length);
   let i = 0;
+  // Prompts open at the same time (e.g. each player chooses) resolve in the order they were answered (log order),
+  // not in the order they were opened: the order can matter (cards put on the bottom of a deck, history).
+  const logPosition = new Map(logs.map((entry, index) => [entry, index]));
+  const pending: { position: number; release: () => void }[] = [];
+  const releaseNext = (): void => {
+    pending.sort((a, b) => a.position - b.position);
+    pending.shift()?.release();
+  };
 
   game.selectMultiple = async <T>(selections: {
     player: Player;
@@ -247,6 +255,11 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
           toSerializedTranslation("error.behaviorError", { error: "No more SubmitSelection entries in logs to match the game's selectMultiple call." }),
         );
       }
+      // Let the prompts opened at the same time claim their entry, then resolve them in log order.
+      const turn = new Promise<void>((release) => pending.push({ position: logPosition.get(entry) ?? 0, release }));
+      if (pending.length === 1)
+        queueMicrotask(releaseNext);
+      await turn;
 
       const resolvedOptions = entry.payload.selections.map((id) => {
         const option = TargetBuilder["resolveIdentifier"](id, selection.options);
@@ -263,6 +276,8 @@ function setupLoadingSubmitSelectionHandling(game: Game, logs: HistoricEntry[]):
         selected: resolvedOptions,
         remaining: selection.options.filter((option) => !resolvedOptions.includes(option)),
       });
+      if (pending.length > 0)
+        queueMicrotask(releaseNext);
     }
 
     return results;

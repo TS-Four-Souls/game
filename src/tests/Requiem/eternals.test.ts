@@ -364,15 +364,16 @@ describe("Four Souls+2 Eternal Items", () => {
             return stacked;
         };
 
-        // As the turn ends, Glitch copies The Map, whose end of turn ability must trigger.
+        // Take both cards before overwriting the shop: a card in the starting shop would be lost.
         const map = game.obtainCard("b2-the_map") as TreasureCard;
+        const darkBum = game.obtainCard("b2-dark_bum") as TreasureCard;
+        // As the turn ends, Glitch copies The Map, whose end of turn ability must trigger.
         game.shop._slots = [[map]];
         await game.endTurn();
         expect(await resolveUntilTurnOf(player2)).toContain("b2-the_map");
         expect((eternal.tags.copiedCards as ItemCard[]).map((c) => c.slug)).toEqual(["b2-the_map"]);
 
         // As the next turn starts, Glitch copies Dark Bum, whose start of turn ability must trigger.
-        const darkBum = game.obtainCard("b2-dark_bum") as TreasureCard;
         game.shop._slots = [[darkBum]];
         await game.endTurn();
         expect(await resolveUntilTurnOf(player1)).toContain("b2-dark_bum");

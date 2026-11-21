@@ -129,7 +129,7 @@ describe("Loot deck integration", () => {
 
   it("plays a gain coins card through the stack", async () => {
     const { game, p1 } = await setupDecks();
-    const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2/);
+    const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2\.?$/);
     expect(gainCoinCard).toBeTruthy();
 
     const amountMatch = /Gain\s+(\d+)\u00A2/u.exec(gainCoinCard!.effectOutcomes[0]!);
@@ -194,7 +194,7 @@ describe("Loot deck integration", () => {
     expect(cancelCard).toBeTruthy();
 
     // First play a gain coin card
-    const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2/);
+    const gainCoinCard = findCardByEffect(game, /^Gain\s+\d+\u00A2\.?$/);
     const coinsExpected = Number(/Gain\s+(\d+)\u00A2/u.exec(gainCoinCard!.effectOutcomes[0]!)?.[1] ?? 0);
     
     game.decks["loot"]!.remove(gainCoinCard!);
@@ -255,7 +255,7 @@ describe("Loot deck integration", () => {
     // Find two different gain coin cards
     const lootDeck = game.decks["loot"]!;
     const gainCards = lootDeck.cards.filter((card) =>
-      card.effectOutcomes?.some((outcome) => /^Gain\s+\d+\u00A2/.test(outcome))
+      card.effectOutcomes?.some((outcome) => /^Gain\s+\d+\u00A2\.?$/.test(outcome)) // only "Gain N¢.": e.g. Butt Penny also rolls
     ).slice(0, 2);
     
     expect(gainCards.length).toBeGreaterThanOrEqual(2);

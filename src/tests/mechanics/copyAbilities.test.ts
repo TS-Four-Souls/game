@@ -13,6 +13,7 @@ describe("Copy abilities", () => {
         const { game, player1 } = setup;
         const player2 = setup.player2!;
         const brimstone = game.obtainCard("b2-brimstone") as TreasureCard; // +1 [ATK]
+        const birthright = game.obtainCard("r-birthright") as ItemCard; // before overwriting the shop, where it may be
         game.shop._slots = [[brimstone]];
         game.select = async (_issuer, min, _max, opts) => ({ selected: opts.slice(0, Math.max(min, 1)), remaining: [] });
         await game.resolveEntireStack();
@@ -20,7 +21,6 @@ describe("Copy abilities", () => {
         expect(glitch.slug).toBe("r-glitch");
         const baseAttack = game.entityHandler.getAttack(player1) - 1; // glitch gained brimstone
 
-        const birthright = game.obtainCard("r-birthright") as ItemCard;
         game.cardHandler.addInPlay(player1, birthright);
         game.cardHandler.recharge(birthright);
         await game.activateItem(player1, birthright, [glitch], "tap");

@@ -32,6 +32,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
 
     it("fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2 boss cards. Put them in one or more monster slots not being attacked and the rest into discard. The active player must make an additional attack on one of them this turn.", async () => {
         const card1 = game.obtainCard("fsp2-boss_rush") as MonsterCard;
+        // Gurdy is on top: put another boss without abilities above it (a random one may trigger as it enters, e.g. Lil Hunter).
+        game.decks.monster.addTopPosition(game.obtainCard("b2-monstro") as MonsterCard);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 0);
@@ -55,6 +57,8 @@ fsp2-boss_rush - Reveal cards from the top of the monster deck till you reveal 2
 
     it("fsp2-boss_rush - (One slot) Reveal cards from the top of the monster deck till you reveal 2 boss cards. Put them in one or more monster slots not being attacked and the rest into discard. The active player must make an additional attack on one of them this turn.", async () => {
         const card1 = game.obtainCard("fsp2-boss_rush") as MonsterCard;
+        // Gurdy is on top: put another boss without abilities above it (a random one may trigger as it enters, e.g. Lil Hunter).
+        game.decks.monster.addTopPosition(game.obtainCard("b2-monstro") as MonsterCard);
         game.decks.monster.addTopPosition(card1);
         game.actions.declareAttack(player1);
         await game.actions.declareAttackOnEntity(player1, "topDeck", 1);

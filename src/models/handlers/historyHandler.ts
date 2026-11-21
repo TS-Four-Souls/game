@@ -169,6 +169,8 @@ export class HistoricHandler {
   }
 
   addToHistory(entry: HistoricEntry): void {
+    if (isGameAction(entry) && entry.type !== "Resolve" && entry.type !== "SubmitSelection")
+      this._game.loopHandler.reset();
     if (isGameAction(entry) && entry.type !== "SubmitSelection" && !this._game.hasPendingSelections)
       this._lastSettledLength = this._history.length;
     this._history.push(entry);

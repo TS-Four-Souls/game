@@ -71,6 +71,7 @@ export class ActionHandler {
      * This let other players react to the attack declaration before the target is selected.
      */
     declareAttack(player: Player): void {
+      this.game.entityHandler.endCombatIfInvalid(this.game.currentPlayer);
       this.canDeclareAttack(player, true);
       player.clearOutdatedAttackRequirements(this.game.attackableEntities);
       player.engageInCombat();
@@ -86,7 +87,6 @@ export class ActionHandler {
     canDeclareAttackOnEntity(player: Player,
       entity: Entity | "topDeck", shouldThrow: boolean = false): Capability {
       try {
-        this.game.entityHandler.endCombatIfInvalid(player);
         this.game.assert.emptyStack();
         if (entity !== "topDeck" && !entity.attackable) {
           throw new GameError("This entity cannot be attacked.", toSerializedTranslation("capability.entityNotAttackable"));
@@ -131,7 +131,15 @@ export class ActionHandler {
         target: Entity | "topDeck",
         drawInIndex: number = -1
       ): Promise<void> {
+        this.game.entityHandler.endCombatIfInvalid(player);
         this.canDeclareAttackOnEntity(player, target, true);
+        // Reject an invalid slot now: failing later would use up the attack of a request that is not logged.
+        if (target === "topDeck") {
+          if (drawInIndex < 0 || drawInIndex > this.game.encounters._slots.length)
+            throw new GameError("Invalid monster position.", toSerializedTranslation("error.invalidMonsterPosition"));
+          if (this.game.encounters.cardsOnTop[drawInIndex]?.indomitable)
+            throw new GameError("Invalid monster position.", toSerializedTranslation("error.cannotCoverIndomitable"));
+        }
         const attackTopDeck = target === "topDeck";
         const attacked = [target];
         if(target instanceof Monster)
@@ -152,37 +160,43 @@ export class ActionHandler {
             );
           if(this.game.actions.canDeclareAttackOnEntity(player, target, false) !== true)
             return; // if the target is no longer valid, do nothing.
-          player.registerAttackDeclaration(target);
-          if (target === "topDeck") {
-            this.game.drawMonster(player, drawInIndex);
-            if (
-              this.game.encounters.monsterIn(drawInIndex) === undefined ||
-              !this.game.encounters.monsterIn(drawInIndex)!.attackable
-            ) {
-              player.clearAttackRequirement(target);
-              player.clearAttackRequirement("any");
-              this.game.entityHandler.endCombat();
-              return; // drawn event.
+          // The attack is spent before the target is in combat: a dispatch in between must not end the combat.
+          this.game.entityHandler.declaringAttack = true;
+          try {
+            player.registerAttackDeclaration(target);
+            if (target === "topDeck") {
+              const drawnIndex = this.game.drawMonster(player, drawInIndex);
+              if (
+                this.game.encounters.monsterIn(drawnIndex) === undefined ||
+                !this.game.encounters.monsterIn(drawnIndex)!.attackable
+              ) {
+                player.clearAttackRequirement(target);
+                player.clearAttackRequirement("any");
+                this.game.entityHandler.endCombat();
+                return; // drawn event.
+              }
+              target = this.game.encounters.monsterIn(drawnIndex)!;
             }
-            target = this.game.encounters.monsterIn(drawInIndex)!;
-          }
-          player.clearAttackRequirement(target);
-          player.clearAttackRequirement("any");
-          if(target.isDead)
-          {
-            return; // if the target is already dead, do nothing.
-          }
-          target.engageInCombat();
-          this.game.entityHandler.addEntityInCombat(target);
-          if (target.isEngagedInCombat === false)
-            throw new GameError("Monster should be engaged in combat now.",
-              toSerializedTranslation("error.monsterShouldBeEngagedInCombat")
-            );
+            player.clearAttackRequirement(target);
+            player.clearAttackRequirement("any");
+            if(target.isDead)
+            {
+              return; // if the target is already dead, do nothing.
+            }
+            target.engageInCombat();
+            this.game.entityHandler.addEntityInCombat(target);
+            if (target.isEngagedInCombat === false)
+              throw new GameError("Monster should be engaged in combat now.",
+                toSerializedTranslation("error.monsterShouldBeEngagedInCombat")
+              );
           
-          if(attackTopDeck)
-          {
-            this.game.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
-            player.stats.nbAttackTopDeck++;
+            if(attackTopDeck)
+            {
+              this.game.emit("on:attack:declared:topdeck", { eventIssuer: player, drawInIndex });
+              player.stats.nbAttackTopDeck++;
+            }
+          } finally {
+            this.game.entityHandler.declaringAttack = false;
           }
           this.game.dispatch();
         });
@@ -279,6 +293,10 @@ export class ActionHandler {
    * Resolves the top stack element, then triggers follow-up callbacks.
    */
   async resolveStack(): Promise<void> {
+    return this.game.loopHandler.whileResolving(async () => this.resolveStackElement());
+  }
+
+  private async resolveStackElement(): Promise<void> {
     // Keep resolveStack() idempotent: resolving an empty stack is a no-op.
     if (this.game.stack.isEmpty()) return;
 
@@ -292,6 +310,8 @@ export class ActionHandler {
     }
     const elem = this.game.stack.peek();
     if (elem === undefined) return;
+    if (await this.game.loopHandler.onResolve(elem))
+      return; // players voted to reset the stack: nothing left to resolve.
     if(elem instanceof DiceRoll)
       return this.game.resolveDiceRoll();
     if(elem instanceof DamageOnStack)
@@ -307,6 +327,8 @@ export class ActionHandler {
       this.game.cardHandler.handleLootCardEffectResolution(elem);
     this.game.dispatch();
     await this.game.resolveCallbacks();
+    if (this.game.stack.isEmpty())
+      this.game.loopHandler.reset();
   }
 
   async activateRoom(player: Player,
@@ -316,11 +338,14 @@ export class ActionHandler {
   ): Promise<boolean> {
     if(!this.game.rooms || !(room instanceof RoomCard) || (player !== this.game.currentPlayer))
       return false;
+    if (!player.canIActivateThisTurn)
+      throw new GameError("You can't activate an ability this turn.", toSerializedTranslation("capability.cannotActivateThisTurn"));
     if (!room.targetStillValid(player, effectId, targets))
       throw new GameError("Targets are not valid for this effect.", toSerializedTranslation("error.targetsNotValidForEffect"));
 
     const effectOnStack = await room.tryActivateEffect(targets, effectId);
     this.game.addToStack(effectOnStack);
+    this.game.emit("on:card:activated", { eventIssuer: player, item: room, effectId });
     player.stats.nbRoomActivated++;
     return true;
   }
@@ -329,6 +354,7 @@ export class ActionHandler {
      * End the turn of the current player if issuer is the current player and all conditions are satisfied.
      */
     async nextTurn(player: Player): Promise<void> {
+      this.game.entityHandler.endCombatIfInvalid(this.game.currentPlayer);
       this.canEndTurn(player, true);
       await this.game.endTurn();
     }
@@ -418,7 +444,8 @@ export class ActionHandler {
       const handCard = index === "topLootCard" ? this.game.decks.loot.cards[0] : player.hand.playableCards[index]!;
       // Checked before drawing, so a refused play doesn't take the top card off the loot deck (it is never free).
       this.canPlayCard(player, true, handCard);
-      const card = handCard ?? this.game.decks.loot.draw();
+      // The top card is only drawn once the play is allowed (resetting the discard keeps the same top card).
+      const card = index === "topLootCard" ? this.game.decks.loot.draw() : handCard!;
       if(index === "topLootCard")
         this.game.cardHandler.ensureEffectsAttached(card);
       const isFree = player.hand.isFree(card);
@@ -572,6 +599,7 @@ export class ActionHandler {
 
   /** Enters purchase mode and consumes one purchase allowance. */
   declarePurchase(player: Player): void {
+    this.game.entityHandler.endCombatIfInvalid(this.game.currentPlayer);
     this.canDeclarePurchase(player, true);
 
     this.game.emit("on:purchase:declared", { eventIssuer: player });
@@ -599,8 +627,9 @@ export class ActionHandler {
   /** Validates whether the active player can buy from the shop now.
    *  By default checks if the first item in the shop can not be purchased.
    * It assumes that: all shop items have the same price, and that the top deck item is not cheaper.
+   * With no shop slots, it checks the top of the deck instead.
    */
-  canPurchase(player: Player, index: number | "top" = 0, shouldThrow: boolean = false): Capability {
+  canPurchase(player: Player, index: number | "top" = this.game.shop.itemsInShop.length > 0 ? 0 : "top", shouldThrow: boolean = false): Capability {
     try {
       this.game.assert.gameOngoing();
       this.game.assert.currentTurnIsPlayerTurn(player);
@@ -608,6 +637,9 @@ export class ActionHandler {
       this.game.assert.currentPlayerIsEngagedInPurchase();
       this.game.assert.noPendingSelection();
       this.game.assert.emptyStack();
+      if (index !== "top" && (index < 0 || index >= this.game.shop.itemsInShop.length))
+        throw new GameError("Invalid shop index.",
+          toSerializedTranslation("error.invalidShopIndex"));
       const price = this.game.shop.priceAt(index, player);
       if (player.coins < price!) {
         throw new GameError(
@@ -628,9 +660,6 @@ export class ActionHandler {
   /** Purchases a shop slot (or top deck) item if affordable. */
   purchase(player: Player, index: number | "top"): string {
     this.canPurchase(player, index, true);
-    if (index !== "top" && (index < 0 || index >= this.game.shop.itemsInShop.length))
-      throw new GameError("Invalid shop index.",
-        toSerializedTranslation("error.invalidShopIndex"));
     const price = Math.max(0, this.game.shop.priceAt(index, player));
       if (player.coins < price!) {
         throw new GameError(
